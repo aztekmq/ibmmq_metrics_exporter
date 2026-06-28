@@ -12,7 +12,7 @@
 *.dylib
 *.dll
 *.exe
-push_it.bat
+push_it.sh
 
 # -----------------------------------------------------------------------------
 # CMake-generated files
