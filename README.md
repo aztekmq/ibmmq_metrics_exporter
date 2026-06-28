@@ -1,5 +1,12 @@
 # IBM MQ Metrics Exporter for Prometheus
 
+[![License](https://img.shields.io/github/license/aztekmq/ibmmq_metrics_exporter)](https://github.com/aztekmq/ibmmq_metrics_exporter/blob/main/LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B)](https://isocpp.org/)
+[![CMake](https://img.shields.io/badge/CMake-3.20%2B-064F8C?logo=cmake)](https://cmake.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Exporter-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![IBM MQ](https://img.shields.io/badge/IBM%20MQ-10.0.0.0-052FAD?logo=ibm)](https://www.ibm.com/products/mq)
+
 A Prometheus exporter for IBM MQ queue managers, written in C++. Collects metrics from queue managers running on any platform (Windows, Linux, AIX, z/OS, IBM MQ Appliance) via binding mode or client connections.
 
 ## Document scope
