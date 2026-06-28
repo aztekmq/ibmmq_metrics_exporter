@@ -12,7 +12,11 @@
 *.dylib
 *.dll
 *.exe
+<<<<<<< HEAD
 push_it.sh
+=======
+push_it.bat
+>>>>>>> refs/remotes/origin/main
 
 # -----------------------------------------------------------------------------
 # CMake-generated files
