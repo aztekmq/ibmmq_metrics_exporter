@@ -28,7 +28,7 @@ This document also defines the supported container topology for the lab environm
 
 - Docker Engine with Docker Compose v2 is installed and operational.
 - Host system includes curl and rg for validation steps.
-- Ports 1415-1417, 9090, and 9157-9159 are available on the host.
+- Ports 1415-1417, 3000, 9090, and 9157-9159 are available on the host.
 - You have permission to run Docker and any required sudo operations.
 
 ## Reference architecture
@@ -37,12 +37,14 @@ The Docker lab is a fixed deployment with three queue managers and mixed exporte
 
 ```mermaid
 flowchart LR
+  G[Grafana 3000]
     P[Prometheus 9090]
     E[Remote Exporter container]
     Q1[QM1 container]
     Q2[QM2 container]
     Q3[QM3 container with embedded exporter]
 
+  G -->|query| P
     P -->|scrape 9157| E
     P -->|scrape 9159| Q3
 
@@ -57,6 +59,7 @@ flowchart LR
 - Prometheus scrapes two metrics endpoints:
   - 9157 for merged QM1 and QM2 metrics via remote exporter
   - 9159 for QM3 via embedded exporter
+- Grafana (optional) queries Prometheus for dashboard visualization on port 3000.
 
 ## Features
 
@@ -119,13 +122,14 @@ cmake --build build
 
 ### Topology summary
 
-The Docker lab is intentionally fixed to three queue managers and one Prometheus instance:
+The Docker lab is intentionally fixed to three queue managers and one Prometheus instance, with optional Grafana:
 
 - qm1: IBM MQ queue manager container.
 - qm2: IBM MQ queue manager container.
 - qm3: IBM MQ queue manager container with embedded ibmmq-exporter.
 - exporter: remote exporter container that targets qm1 and qm2.
 - prometheus-local-monitoring: Prometheus container that scrapes ports 9157 and 9159.
+- grafana-local-monitoring (optional): Grafana container that queries Prometheus and auto-loads dashboards.
 
 ### Port allocation
 
