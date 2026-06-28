@@ -87,6 +87,8 @@ cleanup_existing_exporters() {
 generate_compose_file() {
   echo "Generating remote exporter compose file..."
   targets=""
+  exporter_user="${IBMMQ_USER:-}"
+  exporter_password="${IBMMQ_PASSWORD:-}"
 
   for ((i=1; i<=TARGET_COUNT; i++)); do
     qmgr_name="QM${i}"
@@ -109,8 +111,8 @@ services:
       - IBMMQ_CHANNEL=EXPORTER.SVRCONN
       - IBMMQ_EXPORTER_BASE_PORT=${INTERNAL_METRICS_BASE_PORT}
       - IBMMQ_EXPORTER_PUBLIC_PORT=${BASE_METRICS_PORT}
-      - IBMMQ_USER=
-      - IBMMQ_PASSWORD=
+      - IBMMQ_USER=${exporter_user}
+      - IBMMQ_PASSWORD=${exporter_password}
     ports:
       - "${BASE_METRICS_PORT}:${BASE_METRICS_PORT}"
     networks:

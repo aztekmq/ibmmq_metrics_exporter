@@ -87,6 +87,7 @@ void MQClient::connect() {
 
     if (client_mode) {
         cno.Options = MQCNO_CLIENT_BINDING;
+        cno.Version = MQCNO_VERSION_2;
         std::strncpy(cd.ChannelName, config_.channel.c_str(), sizeof(cd.ChannelName) - 1);
         std::strncpy(cd.ConnectionName, config_.get_connection_name().c_str(), sizeof(cd.ConnectionName) - 1);
 
@@ -112,7 +113,8 @@ void MQClient::connect() {
     }
 
     MQLONG cc = 0, rc = 0;
-    MQCONNX(const_cast<char*>(config_.queue_manager.c_str()), &cno, &hconn_, &cc, &rc);
+    std::string connect_qmgr = client_mode ? "" : config_.queue_manager;
+    MQCONNX(const_cast<char*>(connect_qmgr.c_str()), &cno, &hconn_, &cc, &rc);
 
     if (cc == MQCC_FAILED) {
         throw std::runtime_error("Failed to connect to queue manager " +
@@ -594,20 +596,96 @@ std::vector<std::string> MQClient::discover_queues(const std::string& pattern) {
 
     std::vector<std::string> queues;
     for (const auto& resp : responses) {
-        auto details = PCFInquiry::parse_queue_status_response(resp.data(), resp.size());
-        for (const auto& d : details) {
-            if (d.queue_name.empty()) continue;
+        if (resp.size() < 36) continue;
 
-            // Skip temporary/dynamic queues and model queues
-            if (d.queue_name.substr(0, 4) == "AMQ." ||
-                d.queue_name.substr(0, 9) == "EXPORTER." ||
-                d.queue_name.find("MANAGED.NDURABLE") != std::string::npos ||
-                d.queue_name.find("MODEL") != std::string::npos)
-                continue;
+        // CompCode at offset 24 in MQCFH
+        uint32_t comp_code = 0;
+        std::memcpy(&comp_code, resp.data() + 24, sizeof(comp_code));
+        if (comp_code != 0) continue;
 
-            queues.push_back(d.queue_name);
+        size_t offset = 36; // MQCFH_SIZE
+        while (offset + 8 <= resp.size()) {
+            uint32_t param_type = 0;
+            uint32_t param_len = 0;
+            std::memcpy(&param_type, resp.data() + offset, sizeof(param_type));
+            std::memcpy(&param_len, resp.data() + offset + 4, sizeof(param_len));
+
+            if (param_len == 0 || offset + param_len > resp.size()) break;
+
+            // MQCFST (string param): Parameter at +8, StringLength at +16, bytes at +20
+            if (param_type == 4 && param_len >= 24) {
+                uint32_t param_id = 0;
+                uint32_t str_len = 0;
+                std::memcpy(&param_id, resp.data() + offset + 8, sizeof(param_id));
+                std::memcpy(&str_len, resp.data() + offset + 16, sizeof(str_len));
+
+                if (param_id == 2016 && str_len > 0 && offset + 20 + str_len <= resp.size()) {
+                    std::string qname(reinterpret_cast<const char*>(resp.data() + offset + 20), str_len);
+
+                    // Trim trailing blanks/NULs from fixed-width MQ strings.
+                    while (!qname.empty() && (qname.back() == ' ' || qname.back() == '\0')) {
+                        qname.pop_back();
+                    }
+
+                    if (!qname.empty()) {
+                        // Skip temporary/dynamic queues and model queues.
+                        if (qname.substr(0, 4) == "AMQ." ||
+                            qname.substr(0, 9) == "EXPORTER." ||
+                            qname.find("MANAGED.NDURABLE") != std::string::npos ||
+                            qname.find("MODEL") != std::string::npos) {
+                            offset += param_len;
+                            continue;
+                        }
+
+                        if (std::find(queues.begin(), queues.end(), qname) == queues.end()) {
+                            queues.push_back(qname);
+                        }
+                    }
+                }
+            }
+
+            // MQCFSL (string-list param): Parameter at +8, Count at +16,
+            // StringLength at +20, strings at +24 (fixed width each).
+            if (param_type == 6 && param_len >= 24) {
+                uint32_t param_id = 0;
+                uint32_t count = 0;
+                uint32_t str_len = 0;
+                std::memcpy(&param_id, resp.data() + offset + 8, sizeof(param_id));
+                std::memcpy(&count, resp.data() + offset + 16, sizeof(count));
+                std::memcpy(&str_len, resp.data() + offset + 20, sizeof(str_len));
+
+                if (param_id == 2016 && str_len > 0) {
+                    size_t pos = offset + 24;
+                    for (uint32_t i = 0; i < count; ++i) {
+                        if (pos + str_len > resp.size()) {
+                            break;
+                        }
+
+                        std::string qname(reinterpret_cast<const char*>(resp.data() + pos), str_len);
+                        while (!qname.empty() && (qname.back() == ' ' || qname.back() == '\0')) {
+                            qname.pop_back();
+                        }
+
+                        if (!qname.empty()) {
+                            if (qname.substr(0, 4) != "AMQ." &&
+                                qname.substr(0, 9) != "EXPORTER." &&
+                                qname.find("MANAGED.NDURABLE") == std::string::npos &&
+                                qname.find("MODEL") == std::string::npos) {
+                                if (std::find(queues.begin(), queues.end(), qname) == queues.end()) {
+                                    queues.push_back(qname);
+                                }
+                            }
+                        }
+
+                        pos += str_len;
+                    }
+                }
+            }
+
+            offset += param_len;
         }
     }
+
     spdlog::info("Discovered {} queues matching '{}'", queues.size(), pattern);
     return queues;
 }

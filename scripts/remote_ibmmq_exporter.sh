@@ -14,6 +14,8 @@ CONFIG_FILE="/usr/local/bin/ibmmq-exporter/config.yaml"
 EXPORTER_BIN="/usr/local/bin/ibmmq-exporter/ibmmq-exporter"
 TARGETS="${IBMMQ_TARGETS:-}"
 CHANNEL="${IBMMQ_CHANNEL:-EXPORTER.SVRCONN}"
+USERNAME="${IBMMQ_USER:-}"
+PASSWORD="${IBMMQ_PASSWORD:-}"
 START_PORT="${IBMMQ_EXPORTER_BASE_PORT:-19157}"
 PUBLIC_PORT="${IBMMQ_EXPORTER_PUBLIC_PORT:-9157}"
 FAN_IN_BIN="/usr/local/bin/ibmmq-exporter/metrics_fan_in.py"
@@ -58,7 +60,7 @@ render_target_config() {
   local host="$3"
   local port="$4"
 
-  awk -v qmgr="$qmgr" -v channel="$CHANNEL" -v host="$host" -v port="$port" '
+  awk -v qmgr="$qmgr" -v channel="$CHANNEL" -v host="$host" -v port="$port" -v user="$USERNAME" -v pass="$PASSWORD" '
     BEGIN {
       in_mq = 0
     }
@@ -92,6 +94,14 @@ render_target_config() {
         }
         if ($0 ~ /^[[:space:]]+connection_name:[[:space:]]*/) {
           print "  connection_name: \"" host "(" port ")\""
+          next
+        }
+        if ($0 ~ /^[[:space:]]+username:[[:space:]]*/) {
+          print "  username: \"" user "\""
+          next
+        }
+        if ($0 ~ /^[[:space:]]+password:[[:space:]]*/) {
+          print "  password: \"" pass "\""
           next
         }
       }

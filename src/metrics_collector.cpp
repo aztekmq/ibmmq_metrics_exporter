@@ -499,6 +499,9 @@ std::vector<std::string> MetricsCollector::get_queues_to_monitor() {
         // Try PCF discovery first
         std::vector<std::string> all_queues;
         for (const auto& pattern : config_.collector.monitored_queues) {
+            if (!pattern.empty() && pattern[0] == '!') {
+                continue;
+            }
             auto qs = mq_client_->discover_queues(pattern);
             all_queues.insert(all_queues.end(), qs.begin(), qs.end());
         }

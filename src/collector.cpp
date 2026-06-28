@@ -59,6 +59,9 @@ void Collector::setup_after_connect() {
     // subscriptions need the queue list)
     if (!config_.collector.monitored_queues.empty()) {
         for (const auto& pattern : config_.collector.monitored_queues) {
+            if (!pattern.empty() && pattern[0] == '!') {
+                continue;
+            }
             auto qs = mq_client_->discover_queues(pattern);
             discovered_queues_.insert(discovered_queues_.end(), qs.begin(), qs.end());
         }
@@ -214,6 +217,9 @@ void Collector::run_continuous() {
                 spdlog::info("Running queue rediscovery");
                 discovered_queues_.clear();
                 for (const auto& pattern : config_.collector.monitored_queues) {
+                    if (!pattern.empty() && pattern[0] == '!') {
+                        continue;
+                    }
                     auto qs = mq_client_->discover_queues(pattern);
                     discovered_queues_.insert(discovered_queues_.end(), qs.begin(), qs.end());
                 }

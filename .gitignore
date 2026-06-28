@@ -3,6 +3,7 @@
 # Purpose: Exclude compiler/linker outputs and generated binaries that are
 # machine-specific, reproducible from source, and typically large/noisy in diffs.
 # -----------------------------------------------------------------------------
+/ibm_mq_redist_packages
 /out/
 *.o
 *.obj

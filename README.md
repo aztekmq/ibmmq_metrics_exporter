@@ -78,6 +78,8 @@ This section provides two supported paths:
 
 ### Prerequisites
 
+- Optional pre-prerequisite for real IBM MQ builds: download the IBM MQ C Redistributable package (includes headers under `inc/`) from IBM Fix Central:
+  https://www.ibm.com/support/fixcentral/swg/quickorder?parent=ibm%7EWebSphere&product=ibm/WebSphere/WebSphere+MQ&release=10.0.0.0&platform=All&function=fixId&fixids=10.0.0.0-IBM-MQC-Redist-LinuxX64&includeRequisites=0&includeSupersedes=0&downloadMethod=http&source=fc
 - CMake 3.20+
 - C++20 compiler (GCC 11+, Clang 14+, MSVC 2022+)
 - IBM MQ client libraries (optional; stub mode available for building without MQ)

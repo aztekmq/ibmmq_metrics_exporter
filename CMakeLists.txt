@@ -20,6 +20,7 @@ endif()
 
 # --- Options ---
 option(IBMMQ_EXPORTER_USE_STUB_MQ "Build with stub IBM MQ headers (no real MQ dependency)" OFF)
+option(IBMMQ_EXPORTER_ALLOW_STUB_FALLBACK "Allow automatic fallback to stub mode when real MQ is unavailable" OFF)
 option(IBMMQ_EXPORTER_ENABLE_TLS  "Enable TLS/HTTPS support (requires OpenSSL)" OFF)
 
 # --- FetchContent for dependencies ---
@@ -78,11 +79,17 @@ if(IBMMQ_EXPORTER_USE_STUB_MQ)
 else()
     find_package(IBMMQ)
     if(NOT IBMMQ_FOUND)
-        message(WARNING "IBM MQ client not found. Building with stub headers.\n"
-                        "Set MQ_HOME or install IBM MQ client to link against real MQ libraries.")
-        set(IBMMQ_EXPORTER_USE_STUB_MQ ON)
-        set(IBMMQ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/ibmmq_exporter/mq_stubs")
-        set(IBMMQ_LIBRARIES "")
+        if(IBMMQ_EXPORTER_ALLOW_STUB_FALLBACK)
+            message(WARNING "IBM MQ client not found. Building with stub headers.\n"
+                            "Set MQ_HOME/MQ_INCLUDE_PATH/MQ_LIB_PATH or disable fallback.")
+            set(IBMMQ_EXPORTER_USE_STUB_MQ ON)
+            set(IBMMQ_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/ibmmq_exporter/mq_stubs")
+            set(IBMMQ_LIBRARIES "")
+        else()
+            message(FATAL_ERROR "IBM MQ client not found and fallback is disabled.\n"
+                                "Provide MQ_HOME or MQ_INCLUDE_PATH+MQ_LIB_PATH,\n"
+                                "or explicitly enable fallback: -DIBMMQ_EXPORTER_ALLOW_STUB_FALLBACK=ON")
+        endif()
     endif()
 endif()
 
