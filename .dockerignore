@@ -9,6 +9,8 @@ cmake-build-*/
 docker_build/data/
 docker_build/prometheus-data/
 docker_build/prometheus/
+docker_build/grafana-data/
+docker_build/grafana/
 
 # Editor/cache
 .vscode/

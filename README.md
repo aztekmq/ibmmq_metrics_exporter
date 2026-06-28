@@ -137,6 +137,7 @@ The Docker lab is intentionally fixed to three queue managers and one Prometheus
 | exporter (qm1+qm2) | Merged metrics endpoint | 9157 |
 | qm3 embedded exporter | Metrics endpoint | 9159 |
 | Prometheus UI | Web UI | 9090 |
+| Grafana UI (optional) | Dashboard UI | 3000 |
 
 ### Deploy the lab
 
@@ -153,6 +154,9 @@ cd docker_build
 
 # Builds and starts Prometheus scraping merged remote + qm3 endpoints
 ./build_prometheus.sh -h host.docker.internal -p 9157,9159 -P 9090
+
+# Optional: builds and starts Grafana with Prometheus datasource + dashboards
+./build_grafana.sh
 ```
 
 Important
@@ -169,6 +173,7 @@ cd docker_build
 ./build_mq.sh
 ./build_remote_exporter.sh
 ./build_prometheus.sh -h host.docker.internal -p 9157,9159 -P 9090
+./build_grafana.sh
 ```
 
 ### Verify runtime health
@@ -176,6 +181,7 @@ cd docker_build
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 curl -s http://localhost:9090/api/v1/targets
+curl -s http://localhost:3000/api/health
 ```
 
 ### Verify per-queue-manager metrics endpoints
@@ -193,6 +199,7 @@ cd docker_build
 docker compose -p mq_local_monitoring -f docker-compose.yml down
 docker compose -f docker-compose.remote-exporter.yml down
 docker compose -p prometheus_local_monitoring -f docker-compose.prometheus.yml down
+docker compose -p grafana_local_monitoring -f docker-compose.grafana.yml down
 ```
 
 ### Validate the deployment
@@ -424,7 +431,17 @@ Pre-built dashboards are in the `dashboards/` directory:
 | `zOS_Status.json` | z/OS buffer pools, page sets |
 | `Logging.json` | HA replica and CRR recovery metrics |
 
-Import dashboards in Grafana: Dashboards > Import > Upload JSON file.
+To run Grafana locally with automatic Prometheus datasource provisioning and
+auto-import of dashboards:
+
+```bash
+cd docker_build
+./build_grafana.sh
+```
+
+Default Grafana endpoint: `http://localhost:3000` (login: `admin` / `admin`).
+The script copies `../dashboards/*.json` into `docker_build/grafana/dashboards/`
+for provisioning on startup.
 
 ## MQ service integration
 
