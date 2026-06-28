@@ -1,0 +1,62 @@
+# Production Configuration for IBM MQ Metrics Exporter
+
+mq:
+  queue_manager: "PROD_QM"
+  channel: "PROD.COLLECTOR.SVRCONN"
+  host: "mq.company.com"
+  port: 1414
+  username: "collector"
+  # Password should be set via IBMMQ_PASSWORD environment variable
+
+  # SSL/TLS Configuration for production
+  key_repository: "/etc/ssl/mq/key"
+  cipher_spec: "TLS_RSA_WITH_AES_256_CBC_SHA256"
+
+collector:
+  stats_queue: "SYSTEM.ADMIN.STATISTICS.QUEUE"
+  accounting_queue: "SYSTEM.ADMIN.ACCOUNTING.QUEUE"
+  reset_stats: false
+  interval: "30s"
+  max_cycles: 0
+  continuous: true
+
+  keep_running: true
+  reconnect_interval: "5s"
+  use_status: true
+  use_statistics: false
+  rediscover_interval: "1h"
+
+  monitored_queues:
+    - "APP.*"
+    - "PROD.*"
+    - "!SYSTEM.*"
+  monitored_channels:
+    - "*"
+  monitored_topics:
+    - "#"
+  monitored_subscriptions:
+    - "*"
+
+prometheus:
+  port: 9157        # IANA-reserved port for MQ Prometheus
+  path: "/metrics"
+  namespace: "ibmmq"
+  subsystem: "prod"
+  host: "0.0.0.0"
+  # TLS for metrics endpoint
+  # https_cert_file: "/etc/ssl/certs/exporter.crt"
+  # https_key_file: "/etc/ssl/private/exporter.key"
+
+metadata:
+  metadata_tags:
+    - "environment"
+    - "datacenter"
+  metadata_values:
+    - "production"
+    - "dc1"
+
+logging:
+  level: "info"
+  format: "json"
+  output_file: "/var/log/ibmmq-exporter/exporter.log"
+  verbose: false

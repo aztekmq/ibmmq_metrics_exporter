@@ -1,0 +1,63 @@
+# IBM MQ Connection Configuration
+mq:
+  queue_manager: "MQQM1"
+  host: "127.0.0.1"
+  port: 5200
+  channel: "APP1.SVRCONN"
+  username: ""
+  password: ""
+  key_repository: ""
+  cipher_spec: ""
+
+# Collection Configuration
+collector:
+  interval: "10s"
+  continuous: true
+  stats_queue: "SYSTEM.ADMIN.STATISTICS.QUEUE"
+  accounting_queue: "SYSTEM.ADMIN.ACCOUNTING.QUEUE"
+  reset_stats: false
+  monitor_all_queues: true
+  queue_exclusion_patterns: []
+
+  # Extended collection options
+  keep_running: true
+  reconnect_interval: "5s"
+  use_status: true
+  use_statistics: true
+  use_reset_q_stats: false
+  rediscover_interval: "0s"
+
+  # Monitored object patterns (empty = monitor all)
+  monitored_queues: []
+  monitored_channels: []
+  monitored_topics: []
+  monitored_subscriptions: []
+  monitored_amqp_channels: []
+  monitored_mqtt_channels: []
+  queue_subscription_selector: ""
+
+# Prometheus Metrics Configuration
+prometheus:
+  port: 9091
+  path: "/metrics"
+  namespace: "ibmmq"
+  subsystem: ""
+  host: "0.0.0.0"
+  enable_otel: false
+  override_c_type: false
+  https_cert_file: ""
+  https_key_file: ""
+
+# Metadata labels added to every metric
+metadata:
+  meta_prefix: ""
+  metadata_tags: []
+  metadata_values: []
+  locale: ""
+
+# Logging Configuration
+logging:
+  level: "info"
+  format: "json"
+  output_file: ""
+  verbose: false

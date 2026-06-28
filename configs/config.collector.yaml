@@ -1,0 +1,110 @@
+# IBM MQ Metrics Exporter - Full Configuration Template
+# This file documents all available configuration options.
+
+# IBM MQ Connection
+mq:
+  queue_manager: "QM1"
+  # For client mode connections, specify channel, host, and port.
+  # For binding mode (local), leave host and channel empty.
+  channel: "SYSTEM.DEF.SVRCONN"
+  host: ""
+  port: 1414
+  # Connection name can be set instead of host/port (format: "host(port)")
+  connection_name: ""
+  # Authentication
+  username: ""
+  password: ""
+  # TLS/SSL for MQ connection
+  key_repository: ""
+  cipher_spec: ""
+
+# Collection Configuration
+collector:
+  # System event queues
+  stats_queue: "SYSTEM.ADMIN.STATISTICS.QUEUE"
+  accounting_queue: "SYSTEM.ADMIN.ACCOUNTING.QUEUE"
+  # Reset statistics after reading
+  reset_stats: false
+  # Collection interval
+  interval: "30s"
+  # Maximum collection cycles (0 = infinite)
+  max_cycles: 0
+  # Continuous mode - keep collecting on a timer
+  continuous: true
+  # Monitor all local queues
+  monitor_all_queues: true
+  # Exclude these queue name patterns from monitoring
+  queue_exclusion_patterns: []
+
+  # Keep running even if the queue manager is unavailable.
+  # When true, the exporter will keep its HTTP endpoint alive and report
+  # qmgr_status=0, then reconnect when the queue manager returns.
+  keep_running: true
+  # How often to retry connection when disconnected
+  reconnect_interval: "5s"
+
+  # Use PCF INQUIRE commands for detailed status (channels, topics, etc.)
+  use_status: true
+  # Use MQ Statistics/Accounting event messages (requires STATMQI/STATQ enabled)
+  use_statistics: false
+  # Use RESET QSTATS PCF command to reset queue statistics after reading
+  use_reset_q_stats: false
+
+  # Periodically re-discover queues/channels matching patterns (0 = disabled)
+  rediscover_interval: "1h"
+
+  # Monitored object patterns.
+  # Patterns support '*' wildcard at end, e.g. "APP.*"
+  # Prefix with '!' to exclude, e.g. "!SYSTEM.*"
+  # Empty list = monitor all objects of that type
+  monitored_queues:
+    - "*"
+    - "!SYSTEM.*"
+  monitored_channels:
+    - "*"
+  monitored_topics:
+    - "#"
+  monitored_subscriptions:
+    - "*"
+  monitored_amqp_channels: []
+  monitored_mqtt_channels: []
+  # Queue subscription selector for topic-based queue metrics
+  queue_subscription_selector: ""
+
+# Prometheus Metrics Configuration
+prometheus:
+  # Port 9091 is the default. Port 9157 is the IANA-reserved port
+  # for MQ Prometheus exporters.
+  port: 9157
+  path: "/metrics"
+  namespace: "ibmmq"
+  subsystem: ""
+  # Bind address (default "0.0.0.0" binds to all interfaces)
+  host: "0.0.0.0"
+
+  # TLS for the metrics endpoint (requires build with -DIBMMQ_EXPORTER_ENABLE_TLS=ON)
+  https_cert_file: ""
+  https_key_file: ""
+
+  # When true and use_statistics is also true, delta metrics are exposed
+  # as Prometheus Counters instead of Gauges.
+  override_c_type: false
+
+  # OpenTelemetry support (experimental)
+  enable_otel: false
+
+# Metadata labels added to every metric.
+# Useful for distinguishing metrics from multiple exporters.
+# metadata_tags and metadata_values must have the same length.
+metadata:
+  meta_prefix: ""
+  metadata_tags: []
+  metadata_values: []
+  locale: ""
+
+# Logging Configuration
+logging:
+  level: "info"        # debug, info, warn, error, trace
+  format: "json"       # json or text
+  output_file: ""      # Empty = stderr; set path for file logging
+  verbose: false       # Shorthand for level=debug

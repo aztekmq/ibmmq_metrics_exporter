@@ -1,0 +1,63 @@
+# Local in-container exporter config for QM3.
+# Queue manager name is overridden by service STARTARG(+QMNAME+).
+mq:
+  queue_manager: "QM3"
+  channel: ""
+  host: ""
+  port: 1414
+  connection_name: ""
+  username: ""
+  password: ""
+  key_repository: ""
+  cipher_spec: ""
+
+collector:
+  stats_queue: "SYSTEM.ADMIN.STATISTICS.QUEUE"
+  accounting_queue: "SYSTEM.ADMIN.ACCOUNTING.QUEUE"
+  reset_stats: false
+  interval: "30s"
+  max_cycles: 0
+  continuous: true
+  monitor_all_queues: true
+  queue_exclusion_patterns: []
+  keep_running: true
+  reconnect_interval: "5s"
+  use_status: true
+  use_statistics: false
+  use_reset_q_stats: false
+  rediscover_interval: "1h"
+  monitored_queues:
+    - "*"
+    - "!SYSTEM.*"
+  monitored_channels:
+    - "*"
+  monitored_topics:
+    - "#"
+  monitored_subscriptions:
+    - "*"
+  monitored_amqp_channels: []
+  monitored_mqtt_channels: []
+  queue_subscription_selector: ""
+
+prometheus:
+  port: 9159
+  path: "/metrics"
+  namespace: "ibmmq"
+  subsystem: ""
+  host: "0.0.0.0"
+  https_cert_file: ""
+  https_key_file: ""
+  override_c_type: false
+  enable_otel: false
+
+metadata:
+  meta_prefix: ""
+  metadata_tags: []
+  metadata_values: []
+  locale: ""
+
+logging:
+  level: "info"
+  format: "json"
+  output_file: ""
+  verbose: false

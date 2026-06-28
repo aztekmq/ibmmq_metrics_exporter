@@ -1,0 +1,139 @@
+groups:
+  - name: ibmmq.rules
+    interval: 30s
+    rules:
+      # Queue Depth Alerts
+      - alert: IBMMQHighQueueDepth
+        expr: ibmmq_queue_depth_current > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: ibmmq
+        annotations:
+          summary: "High queue depth on IBM MQ queue"
+          description: "Queue {{ $labels.queue_name }} on {{ $labels.queue_manager }} has depth {{ $value }}, which is above the warning threshold of 1000"
+
+      - alert: IBMMQCriticalQueueDepth
+        expr: ibmmq_queue_depth_current > 5000
+        for: 2m
+        labels:
+          severity: critical
+          service: ibmmq
+        annotations:
+          summary: "Critical queue depth on IBM MQ queue"
+          description: "Queue {{ $labels.queue_name }} on {{ $labels.queue_manager }} has depth {{ $value }}, which is above the critical threshold of 5000"
+
+      # Queue Activity Alerts
+      - alert: IBMMQNoQueueActivity
+        expr: increase(ibmmq_queue_enqueue_count[10m]) == 0 and increase(ibmmq_queue_dequeue_count[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: ibmmq
+        annotations:
+          summary: "No activity on IBM MQ queue"
+          description: "Queue {{ $labels.queue_name }} on {{ $labels.queue_manager }} has had no message activity for 15 minutes"
+
+      - alert: IBMMQHighMessageRate
+        expr: rate(ibmmq_queue_enqueue_count[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: ibmmq
+        annotations:
+          summary: "High message rate on IBM MQ queue"
+          description: "Queue {{ $labels.queue_name }} on {{ $labels.queue_manager }} has high enqueue rate of {{ $value }} messages/second"
+
+      # Collector Health Alerts
+      - alert: IBMMQCollectorDown
+        expr: up{job=~"ibmmq-collector.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ibmmq-collector
+        annotations:
+          summary: "IBM MQ collector is down"
+          description: "IBM MQ collector {{ $labels.instance }} has been down for more than 1 minute"
+
+      - alert: IBMMQCollectorStaleMetrics
+        expr: time() - ibmmq_last_collection_timestamp > 300
+        for: 2m
+        labels:
+          severity: warning
+          service: ibmmq-collector
+        annotations:
+          summary: "IBM MQ collector has stale metrics"
+          description: "IBM MQ collector {{ $labels.instance }} has not collected metrics for over 5 minutes"
+
+      # Queue Manager Alerts
+      - alert: IBMMQHighMQIOperations
+        expr: rate(ibmmq_mqi_gets_total[5m]) > 1000 or rate(ibmmq_mqi_puts_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+          service: ibmmq
+        annotations:
+          summary: "High MQI operation rate"
+          description: "Application {{ $labels.application_name }} on {{ $labels.queue_manager }} has high MQI operation rate"
+
+      - alert: IBMMQHighBackoutRate
+        expr: rate(ibmmq_mqi_backouts_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: ibmmq
+        annotations:
+          summary: "High backout rate detected"
+          description: "Application {{ $labels.application_name }} on {{ $labels.queue_manager }} has high backout rate of {{ $value }} per second"
+
+      # Channel Alerts
+      - alert: IBMMQChannelInactive
+        expr: ibmmq_channel_messages_total == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: ibmmq
+        annotations:
+          summary: "IBM MQ channel inactive"
+          description: "Channel {{ $labels.channel_name }} on {{ $labels.queue_manager }} has been inactive for 10 minutes"
+
+      - alert: IBMMQHighChannelTraffic
+        expr: rate(ibmmq_channel_bytes_total[5m]) > 10485760 # 10MB/s
+        for: 5m
+        labels:
+          severity: info
+          service: ibmmq
+        annotations:
+          summary: "High traffic on IBM MQ channel"
+          description: "Channel {{ $labels.channel_name }} on {{ $labels.queue_manager }} has high traffic of {{ $value }} bytes/second"
+
+  - name: ibmmq.recording_rules
+    interval: 30s
+    rules:
+      # Recording rules for common queries
+      - record: ibmmq:queue_depth_ratio
+        expr: ibmmq_queue_depth_current / ibmmq_queue_depth_high
+        labels:
+          metric_type: "ratio"
+
+      - record: ibmmq:message_rate_5m
+        expr: rate(ibmmq_queue_enqueue_count[5m])
+        labels:
+          metric_type: "rate"
+          operation: "enqueue"
+
+      - record: ibmmq:message_rate_5m
+        expr: rate(ibmmq_queue_dequeue_count[5m])
+        labels:
+          metric_type: "rate"
+          operation: "dequeue"
+
+      - record: ibmmq:queue_utilization
+        expr: (ibmmq_queue_depth_current > 0) * 1
+        labels:
+          metric_type: "utilization"
+
+      - record: ibmmq:active_queues
+        expr: count by (queue_manager) (ibmmq_queue_depth_current > 0)
+        labels:
+          metric_type: "count"

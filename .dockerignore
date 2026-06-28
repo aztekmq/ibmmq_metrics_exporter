@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+cmake-build-*/
+
+# Git metadata
+.git/
+
+# Local runtime/state dirs that should never be part of build context
+docker_build/data/
+docker_build/prometheus-data/
+docker_build/prometheus/
+
+# Editor/cache
+.vscode/
+*.log

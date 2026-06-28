@@ -1,0 +1,36 @@
+# Development Configuration for IBM MQ Metrics Exporter
+
+mq:
+  queue_manager: "DEV_QM"
+  channel: "DEV.SVRCONN"
+  host: "localhost"
+  port: 1414
+  username: "mqdev"
+  password: "devpass" # OK for development
+
+collector:
+  stats_queue: "SYSTEM.ADMIN.STATISTICS.QUEUE"
+  accounting_queue: "SYSTEM.ADMIN.ACCOUNTING.QUEUE"
+  reset_stats: true      # Reset stats in dev for clean testing
+  interval: "10s"        # Fast collection for development
+  max_cycles: 100        # Limited cycles for testing
+  continuous: true
+  keep_running: true
+  use_status: true
+  use_statistics: false
+  monitored_queues:
+    - "*"
+  monitored_channels:
+    - "*"
+
+prometheus:
+  port: 9091
+  path: "/metrics"
+  namespace: "ibmmq"
+  subsystem: "dev"
+
+logging:
+  level: "debug"
+  format: "text"       # Human-readable format
+  output_file: ""      # Log to stderr
+  verbose: true

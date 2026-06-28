@@ -1,0 +1,24 @@
+# Prometheus scrape configuration for IBM MQ Metrics Exporter
+#
+# Add this to your prometheus.yml scrape_configs section, or use
+# this file as a standalone Prometheus configuration.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # IBM MQ metrics exporter
+  # Port 9091 is the default for ibmmq-exporter.
+  # Port 9157 is the IANA-reserved port for MQ Prometheus exporters.
+  - job_name: 'ibmmq'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9091']
+    # For multiple queue managers:
+    # - targets: ['host1:9091', 'host2:9091']
