@@ -186,6 +186,7 @@ for ((i=1; i<=NUM_QMGRS; i++)); do
       - LICENSE=accept
       - MQ_QMGR_NAME=${QMGR_NAME}
       - MQ_APP_PASSWORD=passw0rd
+      - MQ_ADMIN_PASSWORD=passw0rd
       - MQ_ENABLE_METRICS=${ENABLE_BUILTIN_MQ_METRICS}
       - MQ_ENABLE_ADMIN_WEB=${ENABLE_ADMIN_WEB}
     ports:
