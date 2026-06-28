@@ -170,10 +170,12 @@ for ((i=1; i<=NUM_QMGRS; i++)); do
   REST_PORT=$((BASE_REST_PORT + i))
   SERVICE_IMAGE="$IMAGE_NAME"
   ENABLE_ADMIN_WEB="true"
+  ENABLE_BUILTIN_MQ_METRICS="true"
 
   if [[ "$i" -eq 3 ]]; then
     SERVICE_IMAGE="$EMBEDDED_EXPORTER_IMAGE_NAME"
     ENABLE_ADMIN_WEB="false"
+    ENABLE_BUILTIN_MQ_METRICS="false"
   fi
  
   cat <<EOF >> "$COMPOSE_FILE"
@@ -184,7 +186,7 @@ for ((i=1; i<=NUM_QMGRS; i++)); do
       - LICENSE=accept
       - MQ_QMGR_NAME=${QMGR_NAME}
       - MQ_APP_PASSWORD=passw0rd
-      - MQ_ENABLE_METRICS=true
+      - MQ_ENABLE_METRICS=${ENABLE_BUILTIN_MQ_METRICS}
       - MQ_ENABLE_ADMIN_WEB=${ENABLE_ADMIN_WEB}
     ports:
       - "${LISTENER_PORT}:1414"

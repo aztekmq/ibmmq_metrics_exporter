@@ -1,8 +1,14 @@
 # IBM MQ Metrics Exporter - Full Configuration Template
 # This file documents all available configuration options.
+# Note: This schema defines one MQ connection per exporter process.
+# For remote-exporter multi-target mode (QM1, QM2, ...), use IBMMQ_TARGETS
+# and run one process per target. The docker remote-exporter wrapper then
+# merges internal target endpoints into a single public /metrics endpoint.
 
 # IBM MQ Connection
 mq:
+  # Single queue manager for this process.
+  # Example: "QM1"
   queue_manager: "QM1"
   # For client mode connections, specify channel, host, and port.
   # For binding mode (local), leave host and channel empty.

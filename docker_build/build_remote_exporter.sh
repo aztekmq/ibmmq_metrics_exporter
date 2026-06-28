@@ -6,8 +6,8 @@
 #               any queue manager.
 #
 # The image produced is intended to host ibmmq-exporter as a service. The
-# exporter binary is built from source first, then the Docker image is built
-# on top of the mq-local-monitoring base image.
+# runtime reuses an existing local C++ exporter image as a bootstrap layer,
+# then refreshes scripts/config from the current workspace.
 # =============================================================================
 
 set -euo pipefail
@@ -17,11 +17,11 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_IMAGE="mq-local-monitoring"
 REMOTE_IMAGE="mq-remote-exporter"
 BASE_IMAGE_CONTEXT="$SCRIPT_DIR/mq-monitoring"
-BUILD_SCRIPT="$REPO_ROOT/scripts/build.sh"
 DOCKERFILE="$SCRIPT_DIR/remote-exporter/Dockerfile"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.remote-exporter.yml"
 NETWORK_NAME="ibmmq_monitoring"
 BASE_METRICS_PORT=9157
+INTERNAL_METRICS_BASE_PORT=19157
 BASE_LISTENER_PORT=1414
 TARGET_COUNT="${1:-1}"
 
@@ -47,10 +47,16 @@ ensure_base_image() {
   else
     echo "Base image '$BASE_IMAGE' already exists."
   fi
+  if ! docker image inspect "$REMOTE_IMAGE" >/dev/null 2>&1; then
+    echo "ERROR: Bootstrap image '$REMOTE_IMAGE' is required but not found." >&2
+    echo "Run './build_remote_exporter.sh' at least once on a host where the image already exists," >&2
+    echo "or restore it from a local cache/registry backup before rebuilding on this host." >&2
+    return 1
+  fi
 }
 
 build_exporter_binary() {
-  echo "Exporter binary will be built inside the Docker image build stage."
+  echo "Reusing previously built local C++ exporter runtime from image: $REMOTE_IMAGE"
 }
 
 build_image() {
@@ -81,18 +87,15 @@ cleanup_existing_exporters() {
 generate_compose_file() {
   echo "Generating remote exporter compose file..."
   targets=""
-  ports_block=""
 
   for ((i=1; i<=TARGET_COUNT; i++)); do
     qmgr_name="QM${i}"
     host_name="qm${i}"
-    metrics_port=$((BASE_METRICS_PORT + i - 1))
 
     if [[ -n "$targets" ]]; then
       targets+=","
     fi
     targets+="${qmgr_name}@${host_name}:${BASE_LISTENER_PORT}"
-    ports_block+="      - \"${metrics_port}:${metrics_port}\"\n"
   done
 
   cat > "$COMPOSE_FILE" <<EOF
@@ -104,11 +107,12 @@ services:
     environment:
       - IBMMQ_TARGETS=${targets}
       - IBMMQ_CHANNEL=EXPORTER.SVRCONN
-      - IBMMQ_EXPORTER_BASE_PORT=${BASE_METRICS_PORT}
+      - IBMMQ_EXPORTER_BASE_PORT=${INTERNAL_METRICS_BASE_PORT}
+      - IBMMQ_EXPORTER_PUBLIC_PORT=${BASE_METRICS_PORT}
       - IBMMQ_USER=
       - IBMMQ_PASSWORD=
     ports:
-$(printf "%b" "$ports_block")
+      - "${BASE_METRICS_PORT}:${BASE_METRICS_PORT}"
     networks:
       - monitoring
     restart: unless-stopped
@@ -135,7 +139,7 @@ main() {
   echo ""
   echo "Built image: $REMOTE_IMAGE"
   echo "Compose file: $COMPOSE_FILE"
-  echo "Metrics ports: ${BASE_METRICS_PORT}..$((BASE_METRICS_PORT + TARGET_COUNT - 1))"
+  echo "Metrics endpoint: ${BASE_METRICS_PORT} (merged across ${TARGET_COUNT} target(s))"
 }
 
 main "$@"

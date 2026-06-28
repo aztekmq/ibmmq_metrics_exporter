@@ -1,10 +1,11 @@
-FROM ibmcom/mq:latest
+# FROM ibmcom/mq:latest
+FROM icr.io/ibm-messaging/mq:latest
 
 USER root
 
 # Ensure principals referenced by MQSC auth records exist.
-RUN getent group monitoring >/dev/null || groupadd -r monitoring \
- && id -u app >/dev/null 2>&1 || useradd -r -g monitoring -M app
+RUN grep -q '^monitoring:' /etc/group || echo 'monitoring:x:1500:' >> /etc/group \
+ && grep -q '^app:' /etc/passwd || echo 'app:x:1500:1500:Application User:/nonexistent:/sbin/nologin' >> /etc/passwd
 
 # Preload MQSC for monitoring auth/channel setup during dev server initialization.
 COPY monitoring-auth.mqsc /etc/mqm/20-monitoring-auth.mqsc

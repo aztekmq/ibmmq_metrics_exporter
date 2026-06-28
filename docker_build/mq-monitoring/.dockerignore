@@ -1,0 +1,5 @@
+# Keep this build context minimal.
+# The mq-monitoring image only needs the Dockerfile and MQSC bootstrap file.
+*
+!Dockerfile
+!monitoring-auth.mqsc

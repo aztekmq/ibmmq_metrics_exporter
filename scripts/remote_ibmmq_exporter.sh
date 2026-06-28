@@ -14,7 +14,9 @@ CONFIG_FILE="/usr/local/bin/ibmmq-exporter/config.yaml"
 EXPORTER_BIN="/usr/local/bin/ibmmq-exporter/ibmmq-exporter"
 TARGETS="${IBMMQ_TARGETS:-}"
 CHANNEL="${IBMMQ_CHANNEL:-EXPORTER.SVRCONN}"
-START_PORT="${IBMMQ_EXPORTER_BASE_PORT:-9157}"
+START_PORT="${IBMMQ_EXPORTER_BASE_PORT:-19157}"
+PUBLIC_PORT="${IBMMQ_EXPORTER_PUBLIC_PORT:-9157}"
+FAN_IN_BIN="/usr/local/bin/ibmmq-exporter/metrics_fan_in.py"
 
 if [[ ! -x "$EXPORTER_BIN" ]]; then
   echo "ERROR: Exporter binary not found or not executable: $EXPORTER_BIN" >&2
@@ -36,7 +38,18 @@ if ! [[ "$START_PORT" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+if ! [[ "$PUBLIC_PORT" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: IBMMQ_EXPORTER_PUBLIC_PORT must be a number." >&2
+  exit 1
+fi
+
+if [[ ! -x "$FAN_IN_BIN" ]]; then
+  echo "ERROR: Fan-in metrics script not found or not executable: $FAN_IN_BIN" >&2
+  exit 1
+fi
+
 pids=()
+internal_ports=()
 
 cleanup() {
   for pid in "${pids[@]:-}"; do
@@ -85,6 +98,7 @@ for target in "${target_array[@]}"; do
     "$EXPORTER_BIN" -c "$CONFIG_FILE" --continuous --prometheus-port "$prom_port" &
 
   pids+=("$!")
+  internal_ports+=("$prom_port")
   offset=$((offset + 1))
 done
 
@@ -92,6 +106,11 @@ if [[ ${#pids[@]} -eq 0 ]]; then
   echo "ERROR: No valid targets were provided in IBMMQ_TARGETS." >&2
   exit 1
 fi
+
+ports_csv="$(IFS=,; echo "${internal_ports[*]}")"
+echo "Starting merged metrics endpoint on 0.0.0.0:${PUBLIC_PORT} from internal ports: ${ports_csv}"
+TARGET_PORTS_CSV="$ports_csv" PUBLIC_PORT="$PUBLIC_PORT" "$FAN_IN_BIN" &
+pids+=("$!")
 
 wait -n
 cleanup

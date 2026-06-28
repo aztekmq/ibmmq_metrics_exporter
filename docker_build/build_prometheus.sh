@@ -114,7 +114,7 @@ global:
   evaluation_interval: $EVALUATION_INTERVAL
 
 scrape_configs:
-  - job_name: 'mq_pymqi_exporter'
+  - job_name: 'ibmmq_metrics_exporter'
     metrics_path: '$SCRAPE_PATH'
     static_configs:
       - targets:
