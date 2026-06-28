@@ -23,7 +23,7 @@ NETWORK_NAME="ibmmq_monitoring"
 BASE_METRICS_PORT=9157
 INTERNAL_METRICS_BASE_PORT=19157
 BASE_LISTENER_PORT=1414
-TARGET_COUNT="${1:-1}"
+TARGET_COUNT=2
 
 check_command() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -35,8 +35,13 @@ check_command() {
 check_command docker
 check_command bash
 
-if [[ ! "$TARGET_COUNT" =~ ^[0-9]+$ ]] || [[ "$TARGET_COUNT" -lt 1 ]]; then
-  echo "ERROR: Usage: $0 <number_of_qmgr_targets>" >&2
+if [[ "$#" -gt 1 ]]; then
+  echo "ERROR: Usage: $0 [2]" >&2
+  exit 1
+fi
+
+if [[ "$#" -eq 1 ]] && [[ "$1" != "2" ]]; then
+  echo "ERROR: This lab is fixed to qm1 and qm2 only; use '$0' (or '$0 2')." >&2
   exit 1
 fi
 

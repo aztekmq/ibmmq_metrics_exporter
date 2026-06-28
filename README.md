@@ -1,6 +1,6 @@
 # IBM MQ Metrics Exporter for Prometheus
 
-[![License](https://img.shields.io/github/license/aztekmq/ibmmq_metrics_exporter)](https://github.com/aztekmq/ibmmq_metrics_exporter/blob/main/LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-064F8C?logo=cmake)](https://cmake.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -149,7 +149,7 @@ cd docker_build
 ./build_mq.sh
 
 # Builds and starts remote exporter for qm1 and qm2
-./build_remote_exporter.sh 2
+./build_remote_exporter.sh
 
 # Builds and starts Prometheus scraping merged remote + qm3 endpoints
 ./build_prometheus.sh -h host.docker.internal -p 9157,9159 -P 9090
@@ -167,7 +167,7 @@ Important
 ```bash
 cd docker_build
 ./build_mq.sh
-./build_remote_exporter.sh 2
+./build_remote_exporter.sh
 ./build_prometheus.sh -h host.docker.internal -p 9157,9159 -P 9090
 ```
 
