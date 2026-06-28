@@ -17,6 +17,7 @@ CHANNEL="${IBMMQ_CHANNEL:-EXPORTER.SVRCONN}"
 START_PORT="${IBMMQ_EXPORTER_BASE_PORT:-19157}"
 PUBLIC_PORT="${IBMMQ_EXPORTER_PUBLIC_PORT:-9157}"
 FAN_IN_BIN="/usr/local/bin/ibmmq-exporter/metrics_fan_in.py"
+RUNTIME_CONFIG_DIR="/tmp/ibmmq-exporter-target-configs"
 
 if [[ ! -x "$EXPORTER_BIN" ]]; then
   echo "ERROR: Exporter binary not found or not executable: $EXPORTER_BIN" >&2
@@ -51,6 +52,55 @@ fi
 pids=()
 internal_ports=()
 
+render_target_config() {
+  local target_cfg="$1"
+  local qmgr="$2"
+  local host="$3"
+  local port="$4"
+
+  awk -v qmgr="$qmgr" -v channel="$CHANNEL" -v host="$host" -v port="$port" '
+    BEGIN {
+      in_mq = 0
+    }
+    {
+      if ($0 ~ /^mq:[[:space:]]*$/) {
+        in_mq = 1
+        print $0
+        next
+      }
+
+      if (in_mq && $0 ~ /^[^[:space:]]/) {
+        in_mq = 0
+      }
+
+      if (in_mq) {
+        if ($0 ~ /^[[:space:]]+queue_manager:[[:space:]]*/) {
+          print "  queue_manager: \"" qmgr "\""
+          next
+        }
+        if ($0 ~ /^[[:space:]]+channel:[[:space:]]*/) {
+          print "  channel: \"" channel "\""
+          next
+        }
+        if ($0 ~ /^[[:space:]]+host:[[:space:]]*/) {
+          print "  host: \"" host "\""
+          next
+        }
+        if ($0 ~ /^[[:space:]]+port:[[:space:]]*/) {
+          print "  port: " port
+          next
+        }
+        if ($0 ~ /^[[:space:]]+connection_name:[[:space:]]*/) {
+          print "  connection_name: \"" host "(" port ")\""
+          next
+        }
+      }
+
+      print $0
+    }
+  ' "$CONFIG_FILE" > "$target_cfg"
+}
+
 cleanup() {
   for pid in "${pids[@]:-}"; do
     if kill -0 "$pid" >/dev/null 2>&1; then
@@ -58,12 +108,15 @@ cleanup() {
     fi
   done
   wait || true
+  rm -rf "$RUNTIME_CONFIG_DIR"
 }
 
 trap cleanup SIGINT SIGTERM
 
 IFS=',' read -r -a target_array <<< "$TARGETS"
 offset=0
+rm -rf "$RUNTIME_CONFIG_DIR"
+mkdir -p "$RUNTIME_CONFIG_DIR"
 
 for target in "${target_array[@]}"; do
   target_trimmed="$(echo "$target" | xargs)"
@@ -81,6 +134,7 @@ for target in "${target_array[@]}"; do
   host="${endpoint%:*}"
   port="${endpoint##*:}"
   prom_port=$((START_PORT + offset))
+  target_cfg="$RUNTIME_CONFIG_DIR/config.${qmgr}.yaml"
 
   if [[ -z "$qmgr" || -z "$host" || -z "$port" ]]; then
     echo "ERROR: Invalid target '$target_trimmed'." >&2
@@ -88,14 +142,10 @@ for target in "${target_array[@]}"; do
   fi
 
   echo "Starting remote exporter for ${qmgr} on ${host}:${port} (metrics port ${prom_port})"
+  render_target_config "$target_cfg" "$qmgr" "$host" "$port"
 
   env \
-    IBMMQ_QUEUE_MANAGER="$qmgr" \
-    IBMMQ_CHANNEL="$CHANNEL" \
-    IBMMQ_HOST="$host" \
-    IBMMQ_PORT="$port" \
-    IBMMQ_CONNECTION_NAME="${host}(${port})" \
-    "$EXPORTER_BIN" -c "$CONFIG_FILE" --continuous --prometheus-port "$prom_port" &
+    "$EXPORTER_BIN" -c "$target_cfg" --continuous --prometheus-port "$prom_port" &
 
   pids+=("$!")
   internal_ports+=("$prom_port")

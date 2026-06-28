@@ -13,3 +13,6 @@ docker_build/prometheus/
 # Editor/cache
 .vscode/
 *.log
+
+# Utility scripts not needed in container images
+push_it.sh
