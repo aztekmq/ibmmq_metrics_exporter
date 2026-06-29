@@ -80,6 +80,7 @@ flowchart LR
 
 - qm1 and qm2 are monitored by the remote exporter container.
 - qm3 is monitored by an exporter process running inside the qm3 container.
+- All MQ lab images receive the same freshly built `ibmmq-exporter` binary from the shared exporter artifact image.
 - Prometheus scrapes three metrics endpoints:
   - 9157 for QM1 via remote exporter
   - 9158 for QM2 via remote exporter
@@ -160,8 +161,8 @@ cmake --build build
 
 The Docker lab is intentionally fixed to three queue managers and one Prometheus instance, with optional Grafana:
 
-- qm1: IBM MQ queue manager container.
-- qm2: IBM MQ queue manager container.
+- qm1: IBM MQ queue manager container built from the shared monitoring image.
+- qm2: IBM MQ queue manager container built from the shared monitoring image.
 - qm3: IBM MQ queue manager container with embedded ibmmq-exporter.
 - exporter: remote exporter container that targets qm1 and qm2.
 - prometheus-local-monitoring: Prometheus container that scrapes ports 9157, 9158, and 9159.
@@ -187,10 +188,10 @@ Run the following commands from the repository root.
 ```bash
 cd docker_build
 
-# Builds and starts the fixed lab set: qm1, qm2, qm3
+# Builds the exporter artifact, MQ images, and fixed lab set: qm1, qm2, qm3
 ./build_mq.sh
 
-# Builds and starts remote exporter for qm1 and qm2
+# Builds and starts remote exporter for qm1 and qm2 on ports 9157 and 9158
 ./build_remote_exporter.sh
 
 # Builds and starts Prometheus scraping merged remote + qm3 endpoints
@@ -204,6 +205,9 @@ Important
 
 - `./build_mq.sh` does not take a queue manager count parameter.
 - The script always provisions qm1, qm2, and qm3.
+- The script builds `mq-remote-exporter:latest` first, then `mq-local-monitoring:latest`, then `mq-local-embedded-exporter:latest`.
+- qm1, qm2, and qm3 all contain the same exporter binary; qm3 also runs it as an embedded MQ service.
+- Run `./scripts/version_report.sh` from the repository root to compare the repo version, Docker image labels, image binaries, and running container binaries.
 
 ## Operations runbook
 
@@ -294,7 +298,7 @@ Configuration is via YAML file with environment variable overrides.
 Remote-exporter note:
 - `configs/config.collector.yaml` is a single-queue-manager schema.
 - Multi-queue-manager remote scraping is configured with `IBMMQ_TARGETS`.
-- The remote-exporter runtime starts one exporter process per target and exposes public endpoints on `9158` and `9159`.
+- The remote-exporter runtime starts one exporter process per target and exposes public endpoints on `9157` for QM1 and `9158` for QM2.
 
 ### Configuration file
 
@@ -359,9 +363,9 @@ ALTER QMGR MONQ(MEDIUM) MONCHL(MEDIUM)
 **Note:** This is different from `STATMQI(ON)` and `STATQ(ON)` which enable statistics messages to admin queues. Both are independent features.
 
 After you enable resource monitoring, the exporter discovers and collects:
-- CPU utilization metrics (`ibmmq_qmgr_cpu_*`)
-- Queue manager memory metrics (`ibmmq_qmgr_memory_*`)
-- Filesystem usage metrics (`ibmmq_qmgr_disk_*`)
+- CPU and RAM metrics (`ibmmq_qmgr_*cpu*`, `ibmmq_qmgr_ram_*`)
+- Queue manager and MQ filesystem metrics (`ibmmq_qmgr_*file_system_*`)
+- Log usage and latency metrics (`ibmmq_qmgr_log_*`)
 - Per-queue publication metrics from STATQ class
 
 To verify that resource monitoring is working:
@@ -388,9 +392,9 @@ All metrics use the configured namespace (default: `ibmmq`).
 
 | Metric | Labels | Description |
 |---|---|---|
-| `ibmmq_channel_status` | qmgr, platform, channel, type, connname, rqmname | Channel status code |
+| `ibmmq_channel_status` | qmgr, platform, channel, type, connname, rqmname | Raw IBM MQ channel status code, such as `3` for running |
 | `ibmmq_channel_status_squash` | qmgr, platform, channel, type, connname, rqmname | Simplified channel status (0=OK, 1=transitioning, 2=stopped, 3=unknown) |
-| `ibmmq_channel_status_msgs` | qmgr, platform, channel, type | Messages transferred |
+| `ibmmq_channel_msgs` | qmgr, platform, channel, type | Messages transferred |
 | `ibmmq_channel_bytes_sent` | qmgr, platform, channel, type | Bytes sent |
 | `ibmmq_channel_bytes_received` | qmgr, platform, channel, type | Bytes received |
 
@@ -398,9 +402,10 @@ All metrics use the configured namespace (default: `ibmmq`).
 
 | Metric | Labels | Description |
 |---|---|---|
-| `ibmmq_qmgr_status` | qmgr, platform | Queue manager status (1=running) |
+| `ibmmq_qmgr_status` | qmgr, platform | Queue manager status (0=unavailable/disconnected, 1=starting, 2=running, 3=quiescing, 4=standby) |
 | `ibmmq_qmgr_connection_count` | qmgr, platform | Active connections |
-| `ibmmq_qmgr_chinit_status` | qmgr, platform | Channel initiator status |
+| `ibmmq_qmgr_channel_initiator_status` | qmgr, platform | Channel initiator status (0=stopped, 1=starting, 2=running, 3=stopping, 4=retrying) |
+| `ibmmq_qmgr_command_server_status` | qmgr, platform | Command server status (0=stopped, 1=starting, 2=running, 3=stopping) |
 
 ### Topic and subscription metrics
 
@@ -413,17 +418,17 @@ All metrics use the configured namespace (default: `ibmmq`).
 
 ### Resource monitoring metrics (CPU, memory, disk)
 
-When resource monitoring is enabled on the queue manager, the following metrics are collected via publication subscriptions:
+When resource monitoring is enabled on the queue manager, metrics are collected via publication subscriptions. Metric names are derived from IBM MQ monitor element descriptions, so the exact set varies by platform and queue manager configuration.
 
 | Metric | Class | Description |
 |---|---|---|
-| `ibmmq_qmgr_cpu_user` | CPU | User CPU percentage |
-| `ibmmq_qmgr_cpu_system` | CPU | System CPU percentage |
-| `ibmmq_qmgr_memory_resident` | Memory | Resident memory (MB) |
-| `ibmmq_qmgr_memory_virtual` | Memory | Virtual memory (MB) |
-| `ibmmq_qmgr_disk_free_space` | Disk | Free disk space |
-| `ibmmq_qmgr_disk_total_space` | Disk | Total disk space |
-| `ibmmq_qmgr_disk_utilization` | Disk | Disk utilization percentage |
+| `ibmmq_qmgr_system_cpu_time_percentage` | CPU | System CPU percentage |
+| `ibmmq_qmgr_cpu_load_one_minute_average` | CPU | One-minute CPU load average |
+| `ibmmq_qmgr_ram_free_percentage` | CPU | Available RAM percentage reported by MQ resource monitoring |
+| `ibmmq_qmgr_mq_errors_file_system_free_space` | DISK | MQ errors filesystem free-space percentage |
+| `ibmmq_qmgr_queue_manager_file_system_free_space` | DISK | Queue manager filesystem free-space percentage |
+| `ibmmq_qmgr_log_write_latency` | DISK | Log write latency |
+| `ibmmq_qmgr_log_slowest_write_since_restart` | DISK | Slowest log write since queue manager restart |
 
 ### Statistics metrics (STATMQI, per application)
 
