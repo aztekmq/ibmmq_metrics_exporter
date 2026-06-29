@@ -37,21 +37,43 @@ The Docker lab is a fixed deployment with three queue managers and mixed exporte
 
 ```mermaid
 flowchart LR
-    G["Grafana :3000"]
-    P["Prometheus :9090"]
-    E["Remote Exporter Container"]
-    Q1["QM1 Container"]
-    Q2["QM2 Container"]
-    Q3["QM3 Container - Embedded Exporter"]
+    User["Operator"]
 
-    G -->|Query| P
+    subgraph Observe["Observability"]
+        G["Grafana :3000"]
+        P["Prometheus :9090"]
+    end
 
-    P -->|Scrape QM1 metrics :9157| E
-    P -->|Scrape QM2 metrics :9158| E
-    P -->|Scrape QM3 metrics :9159| Q3
+    subgraph Exporters["Exporter Tier"]
+        E["Remote Exporter"]
+    end
+
+    subgraph MQ["IBM MQ Lab"]
+        Q1["QM1 :1415"]
+        Q2["QM2 :1416"]
+        Q3["QM3 :1417 + exporter :9159"]
+    end
+
+    User -->|View dashboards| G
+    G -->|PromQL| P
+
+    P -->|Scrape :9157| E
+    P -->|Scrape :9158| E
+    P -->|Scrape :9159| Q3
 
     E -->|MQ client :1414| Q1
     E -->|MQ client :1414| Q2
+
+    classDef user fill:#111827,stroke:#111827,color:#ffffff
+    classDef observe fill:#e0f2fe,stroke:#0284c7,color:#0f172a
+    classDef exporter fill:#ecfdf5,stroke:#059669,color:#064e3b
+    classDef mq fill:#fff7ed,stroke:#ea580c,color:#431407
+    classDef qmgr fill:#ffedd5,stroke:#f97316,color:#431407
+
+    class User user
+    class G,P observe
+    class E exporter
+    class Q1,Q2,Q3 qmgr
 ```
 
 ## Deployment model
