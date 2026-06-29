@@ -93,16 +93,20 @@
                   "mode": "absolute",
                   "steps": [
                     {
-                      "color": "rgba(245, 54, 54, 0.9)",
-                      "value": null
+                      "color": "rgba(50, 172, 45, 0.97)",
+                      "value": 0
                     },
                     {
                       "color": "rgba(237, 129, 40, 0.89)",
                       "value": 1
                     },
                     {
-                      "color": "rgba(50, 172, 45, 0.97)",
+                      "color": "rgba(245, 54, 54, 0.9)",
                       "value": 2
+                    },
+                    {
+                      "color": "rgba(128, 128, 128, 0.9)",
+                      "value": 3
                     }
                   ]
                 }
@@ -113,16 +117,24 @@
                   {
                     "options": {
                       "0": {
+                        "color": "dark-green",
                         "index": 0,
-                        "text": "Stopped"
+                        "text": "Running"
                       },
                       "1": {
+                        "color": "orange",
                         "index": 1,
                         "text": "Transition"
                       },
                       "2": {
+                        "color": "dark-red",
                         "index": 2,
-                        "text": "Running"
+                        "text": "Stopped"
+                      },
+                      "3": {
+                        "color": "gray",
+                        "index": 3,
+                        "text": "Unknown"
                       }
                     },
                     "type": "value"
@@ -197,6 +209,76 @@
               {
                 "id": "decimals",
                 "value": 0
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "dark-green",
+                        "index": 0,
+                        "text": "INACTIVE"
+                      },
+                      "1": {
+                        "color": "orange",
+                        "index": 1,
+                        "text": "BINDING"
+                      },
+                      "2": {
+                        "color": "orange",
+                        "index": 2,
+                        "text": "STARTING"
+                      },
+                      "3": {
+                        "color": "dark-green",
+                        "index": 3,
+                        "text": "RUNNING"
+                      },
+                      "4": {
+                        "color": "orange",
+                        "index": 4,
+                        "text": "STOPPING"
+                      },
+                      "5": {
+                        "color": "dark-red",
+                        "index": 5,
+                        "text": "RETRYING"
+                      },
+                      "6": {
+                        "color": "dark-red",
+                        "index": 6,
+                        "text": "STOPPED"
+                      },
+                      "7": {
+                        "color": "orange",
+                        "index": 7,
+                        "text": "REQUESTING"
+                      },
+                      "8": {
+                        "color": "dark-red",
+                        "index": 8,
+                        "text": "PAUSED"
+                      },
+                      "9": {
+                        "color": "dark-red",
+                        "index": 9,
+                        "text": "DISCONNECTED"
+                      },
+                      "13": {
+                        "color": "orange",
+                        "index": 13,
+                        "text": "INITIALIZING"
+                      },
+                      "14": {
+                        "color": "orange",
+                        "index": 14,
+                        "text": "SWITCHING"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
               }
             ]
           },
@@ -811,7 +893,7 @@
               }
             ]
           },
-          "unit": "µs"
+          "unit": "\u00b5s"
         },
         "overrides": []
       },
@@ -1038,7 +1120,7 @@
               }
             ]
           },
-          "unit": "µs"
+          "unit": "\u00b5s"
         },
         "overrides": []
       },
@@ -1672,7 +1754,7 @@
             "uid": "000000001"
           },
           "exemplar": false,
-          "expr": " count(ibmmq_channel_status_squash == 2) by (qmgr)",
+          "expr": " count(ibmmq_channel_status_squash == 0) by (qmgr)",
           "format": "table",
           "instant": true,
           "interval": "",
@@ -1778,7 +1860,7 @@
             "uid": "000000001"
           },
           "exemplar": true,
-          "expr": " count by (qmgr) (ibmmq_channel_status_squash==2) ",
+          "expr": " count by (qmgr) (ibmmq_channel_status_squash==0) ",
           "interval": "",
           "legendFormat": "Channels:  {{qmgr}}",
           "refId": "A"
