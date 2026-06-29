@@ -70,6 +70,7 @@ EMBEDDED_EXPORTER_IMAGE_NAME="mq-local-embedded-exporter"
 VERSION_FILE="$REPO_ROOT/VERSION"
 EXPORTER_BASE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
 EXPORTER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+EXPORTER_BUILD_ID="$(date -u +%Y%m%d%H%M%S)"
 if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null || true)" ]]; then
   EXPORTER_GIT_DIRTY="true"
 else
@@ -86,6 +87,49 @@ EMBEDDED_EXPORTER_CONTEXT="$REPO_ROOT"
 COMPOSE_FILE="docker-compose.yml"
 COMPOSE_PROJECT_NAME="mq_local_monitoring"
 NETWORK_NAME="ibmmq_monitoring"
+
+exporter_version_from_image() {
+  local image="$1"
+  docker run --rm --entrypoint /usr/local/bin/ibmmq-exporter/ibmmq-exporter "$image" --version 2>/dev/null
+}
+
+verify_exporter_image_versions() {
+  local expected actual image
+  expected="$(exporter_version_from_image "$REMOTE_EXPORTER_IMAGE_NAME:latest")"
+  if [[ -z "$expected" ]]; then
+    echo -e "${RED}❌ Unable to read exporter version from $REMOTE_EXPORTER_IMAGE_NAME:latest.${NC}"
+    exit 1
+  fi
+
+  echo -e "${CYAN}Exporter artifact version: ${expected}${NC}"
+  for image in "$REMOTE_EXPORTER_IMAGE_NAME:latest" "$IMAGE_NAME:latest" "$EMBEDDED_EXPORTER_IMAGE_NAME:latest"; do
+    actual="$(exporter_version_from_image "$image")"
+    echo -e "${CYAN}  ${image}: ${actual}${NC}"
+    if [[ "$actual" != "$expected" ]]; then
+      echo -e "${RED}❌ Exporter version mismatch in image $image.${NC}"
+      echo -e "${RED}   expected: $expected${NC}"
+      echo -e "${RED}   actual:   $actual${NC}"
+      exit 1
+    fi
+  done
+}
+
+verify_exporter_container_versions() {
+  local expected actual container
+  expected="$(exporter_version_from_image "$REMOTE_EXPORTER_IMAGE_NAME:latest")"
+
+  echo -e "${CYAN}Running MQ container exporter binaries:${NC}"
+  for container in qm1 qm2 qm3; do
+    actual="$(docker exec "$container" /usr/local/bin/ibmmq-exporter/ibmmq-exporter --version 2>/dev/null || true)"
+    echo -e "${CYAN}  ${container}: ${actual:-missing}${NC}"
+    if [[ "$actual" != "$expected" ]]; then
+      echo -e "${RED}❌ Exporter version mismatch in container $container.${NC}"
+      echo -e "${RED}   expected: $expected${NC}"
+      echo -e "${RED}   actual:   ${actual:-missing}${NC}"
+      exit 1
+    fi
+  done
+}
  
 # --------- COLORS ---------
 # ANSI color escape codes for user-friendly terminal output.
@@ -141,13 +185,15 @@ done
 echo -e "${GREEN}✅ No port conflicts detected.${NC}"
 echo -e "${CYAN}Exporter base version: ${EXPORTER_BASE_VERSION}${NC}"
 echo -e "${CYAN}Exporter git revision: ${EXPORTER_GIT_SHA} dirty=${EXPORTER_GIT_DIRTY}${NC}"
+echo -e "${CYAN}Exporter build id: ${EXPORTER_BUILD_ID}${NC}"
  
 # --------- Custom Image Build ---------
-echo -e "${CYAN}ðŸ§± Building remote exporter image...${NC}"
+echo -e "${CYAN}ðŸ§± Building fresh ibmmq-exporter artifact image...${NC}"
 docker build \
   --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
   --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
   --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
   -t "$REMOTE_EXPORTER_IMAGE_NAME:latest" \
   -t "$REMOTE_EXPORTER_IMAGE_NAME:$EXPORTER_BASE_VERSION" \
   -f "$REMOTE_EXPORTER_DOCKERFILE" \
@@ -162,6 +208,7 @@ docker build \
   --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
   --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
   --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
   -t "$IMAGE_NAME:latest" \
   -t "$IMAGE_NAME:$EXPORTER_BASE_VERSION" \
   -f "$MQ_MONITORING_DOCKERFILE" \
@@ -177,6 +224,7 @@ docker build \
   --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
   --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
   --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
   -t "$EMBEDDED_EXPORTER_IMAGE_NAME:latest" \
   -t "$EMBEDDED_EXPORTER_IMAGE_NAME:$EXPORTER_BASE_VERSION" \
   -f "$EMBEDDED_EXPORTER_DOCKERFILE" \
@@ -185,6 +233,8 @@ if [[ $? -ne 0 ]]; then
   echo -e "${RED}❌ Failed to build image '$EMBEDDED_EXPORTER_IMAGE_NAME'.${NC}"
   exit 1
 fi
+
+verify_exporter_image_versions
  
 # --------- Create Data Directories ---------
 # Create per-instance data subdirectories and set ownership to 1001:0 to match
@@ -282,6 +332,8 @@ if [[ $? -ne 0 ]]; then
   echo -e "${RED}❌ Failed to start MQ containers with docker compose.${NC}"
   exit 1
 fi
+
+verify_exporter_container_versions
  
 # --------- Summary ---------
 # Present a clean table of the deployed instances, including container names

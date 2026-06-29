@@ -27,6 +27,7 @@ TARGET_COUNT=2
 VERSION_FILE="$REPO_ROOT/VERSION"
 EXPORTER_BASE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
 EXPORTER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+EXPORTER_BUILD_ID="$(date -u +%Y%m%d%H%M%S)"
 if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null || true)" ]]; then
   EXPORTER_GIT_DIRTY="true"
 else
@@ -65,6 +66,7 @@ ensure_base_image() {
       --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
       --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
       --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+      --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
       -t "$BASE_IMAGE:latest" \
       -t "$BASE_IMAGE:$EXPORTER_BASE_VERSION" \
       -f "$BASE_IMAGE_DOCKERFILE" \
@@ -90,6 +92,7 @@ build_image() {
     --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
     --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
     --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+    --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
     -t "$REMOTE_IMAGE:latest" \
     -t "$REMOTE_IMAGE:$EXPORTER_BASE_VERSION" \
     -f "$DOCKERFILE" \

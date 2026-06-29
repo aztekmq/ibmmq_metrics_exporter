@@ -3,8 +3,10 @@ FROM mq-remote-exporter
 ARG IBMMQ_EXPORTER_BASE_VERSION=unknown
 ARG IBMMQ_EXPORTER_GIT_SHA=unknown
 ARG IBMMQ_EXPORTER_GIT_DIRTY=false
+ARG IBMMQ_EXPORTER_BUILD_ID=manual
 LABEL org.opencontainers.image.version="${IBMMQ_EXPORTER_BASE_VERSION}"
 ENV IBMMQ_EXPORTER_BASE_VERSION="${IBMMQ_EXPORTER_BASE_VERSION}"
+ENV IBMMQ_EXPORTER_BUILD_ID="${IBMMQ_EXPORTER_BUILD_ID}"
 
 USER root
 
@@ -20,6 +22,7 @@ ARG MQ_REDIST_INC=/src/ibm_mq_redist_packages/10.0.0.0-IBM-MQC-Redist-LinuxX64/i
 # Rebuild exporter from current source using toolchain already present in the
 # bootstrap image, then refresh runtime scripts/config.
 RUN mkdir -p /usr/local/bin/ibmmq-exporter /usr/local/bin/ibmmq-exporter/config /usr/local/bin/ibmmq-exporter/logs \
+    && echo "Building ibmmq-exporter artifact ${IBMMQ_EXPORTER_BUILD_ID}" \
      && test -f "$MQ_REDIST_INC/cmqc.h" \
     && cmake -S /src -B /src/build \
        -DCMAKE_BUILD_TYPE=Release \
