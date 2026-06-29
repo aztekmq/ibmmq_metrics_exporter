@@ -28,7 +28,7 @@ This document also defines the supported container topology for the lab environm
 
 - Docker Engine with Docker Compose v2 is installed and operational.
 - Host system includes curl and rg for validation steps.
-- Ports 1415-1417, 3000, 9090, and 9158-9160 are available on the host.
+- Ports 1415-1417, 3000, 9090, and 9157-9159 are available on the host.
 - You have permission to run Docker and any required sudo operations.
 
 ## Reference architecture
@@ -48,7 +48,7 @@ flowchart LR
 
     P -->|"Scrape QM1 metrics :9157"| E
     P -->|"Scrape QM2 metrics :9158"| E
-    P -->|"Scrape QM3 metrics :9160"| Q3
+    P -->|"Scrape QM3 metrics :9159"| Q3
 
     E -->|"MQ client :1414"| Q1
     E -->|"MQ client :1414"| Q2
@@ -59,9 +59,9 @@ flowchart LR
 - qm1 and qm2 are monitored by the remote exporter container.
 - qm3 is monitored by an exporter process running inside the qm3 container.
 - Prometheus scrapes three metrics endpoints:
-  - 9158 for QM1 via remote exporter
-  - 9159 for QM2 via remote exporter
-  - 9160 for QM3 via embedded exporter
+  - 9157 for QM1 via remote exporter
+  - 9158 for QM2 via remote exporter
+  - 9159 for QM3 via embedded exporter
 - Grafana (optional) queries Prometheus for dashboard visualization on port 3000.
 
 ## Features
@@ -74,7 +74,7 @@ flowchart LR
 - **Resource monitoring**: CPU, memory, and disk utilization metrics from queue manager
 - **Statistics/Accounting**: per-application and per-queue MQI operation counts from statistics messages
 - **z/OS metrics**: buffer pool and page set utilization
-- **Publication metrics**: exact topic subscriptions for resource monitoring classes (CPU/DISK/STATMQI/STATQ/STATAPP)
+- **Publication metrics**: exact topic subscriptions for resource monitoring classes (CPU/DISK/STATMQI/STATQ)
 - **Reconnection**: survives queue manager restarts, reports `qmgr_status=0` while disconnected
 - **Dynamic discovery**: periodically rediscovers queues and channels matching patterns, filters out model/temporary queues
 - **Grafana dashboards**: 7 pre-built dashboards for channels, queues, topics, QM status, z/OS, and overview
@@ -88,6 +88,17 @@ This section provides two supported paths:
 
 - Native build and run (single exporter process).
 - Docker lab deployment (fixed topology with qm1, qm2, qm3).
+
+### Versioning
+
+`VERSION` is the single source of truth for the exporter base version. Every CMake build stamps the binary with `base+git-sha[.dirty]` plus separate build-time metadata, and that same version is reported by:
+
+```bash
+./build/ibmmq-exporter --version
+./build/ibmmq-exporter version
+```
+
+The `ibmmq_collection_info` Prometheus metric exposes the exact build stamp in the `collector_version` label. Docker build scripts pass the base version into image labels/tags automatically; use `./scripts/version_report.sh` to compare the repo, Docker images, and running containers.
 
 ### Prerequisites
 
@@ -131,7 +142,7 @@ The Docker lab is intentionally fixed to three queue managers and one Prometheus
 - qm2: IBM MQ queue manager container.
 - qm3: IBM MQ queue manager container with embedded ibmmq-exporter.
 - exporter: remote exporter container that targets qm1 and qm2.
-- prometheus-local-monitoring: Prometheus container that scrapes ports 9158, 9159, and 9160.
+- prometheus-local-monitoring: Prometheus container that scrapes ports 9157, 9158, and 9159.
 - grafana-local-monitoring (optional): Grafana container that queries Prometheus and auto-loads dashboards.
 
 ### Port allocation
@@ -141,9 +152,9 @@ The Docker lab is intentionally fixed to three queue managers and one Prometheus
 | qm1 | MQ listener | 1415 |
 | qm2 | MQ listener | 1416 |
 | qm3 | MQ listener | 1417 |
-| exporter QM1 | Metrics endpoint | 9158 |
-| exporter QM2 | Metrics endpoint | 9159 |
-| qm3 embedded exporter | Metrics endpoint | 9160 |
+| exporter QM1 | Metrics endpoint | 9157 |
+| exporter QM2 | Metrics endpoint | 9158 |
+| qm3 embedded exporter | Metrics endpoint | 9159 |
 | Prometheus UI | Web UI | 9090 |
 | Grafana UI (optional) | Dashboard UI | 3000 |
 
@@ -161,7 +172,7 @@ cd docker_build
 ./build_remote_exporter.sh
 
 # Builds and starts Prometheus scraping merged remote + qm3 endpoints
-./build_prometheus.sh -h host.docker.internal -p 9158,9159,9160 -P 9090
+./build_prometheus.sh -h host.docker.internal -p 9157,9158,9159 -P 9090
 
 # Optional: builds and starts Grafana with Prometheus datasource + dashboards
 ./build_grafana.sh
@@ -180,7 +191,7 @@ Important
 cd docker_build
 ./build_mq.sh
 ./build_remote_exporter.sh
-./build_prometheus.sh -h host.docker.internal -p 9158,9159,9160 -P 9090
+./build_prometheus.sh -h host.docker.internal -p 9157,9158,9159 -P 9090
 ./build_grafana.sh
 ```
 
@@ -195,9 +206,9 @@ curl -s http://localhost:3000/api/health
 ### Verify per-queue-manager metrics endpoints
 
 ```bash
-curl -s http://localhost:9158/metrics | rg -m 1 'qmgr="QM1"'
-curl -s http://localhost:9159/metrics | rg -m 1 'qmgr="QM2"'
-curl -s http://localhost:9160/metrics | rg -m 1 'qmgr="QM3"'
+curl -s http://localhost:9157/metrics | rg -m 1 'qmgr="QM1"'
+curl -s http://localhost:9158/metrics | rg -m 1 'qmgr="QM2"'
+curl -s http://localhost:9159/metrics | rg -m 1 'qmgr="QM3"'
 ```
 
 ### Stop the lab
@@ -217,9 +228,9 @@ docker compose -p grafana_local_monitoring -f docker-compose.grafana.yml down
 docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 
 # Metrics checks
-curl -s http://localhost:9158/metrics | rg -m 1 'qmgr="QM1"'
-curl -s http://localhost:9159/metrics | rg -m 1 'qmgr="QM2"'
-curl -s http://localhost:9160/metrics | rg -m 1 'qmgr="QM3"'
+curl -s http://localhost:9157/metrics | rg -m 1 'qmgr="QM1"'
+curl -s http://localhost:9158/metrics | rg -m 1 'qmgr="QM2"'
+curl -s http://localhost:9159/metrics | rg -m 1 'qmgr="QM3"'
 
 # Prometheus targets
 curl -s http://localhost:9090/api/v1/targets
@@ -227,9 +238,9 @@ curl -s http://localhost:9090/api/v1/targets
 
 ### Operational notes
 
-- qm3 uses an embedded exporter model and publishes metrics directly on port 9160.
+- qm3 uses an embedded exporter model and publishes metrics directly on port 9159.
 - qm1 and qm2 are scraped through the dedicated remote exporter container.
-- The remote exporter exposes one exporter endpoint per target: QM1 on 9158 and QM2 on 9159.
+- The remote exporter exposes one exporter endpoint per target: QM1 on 9157 and QM2 on 9158.
 - If resource-monitoring publication metrics are missing, enable MONQ and MONCHL on each queue manager.
 
 ## Troubleshooting matrix
@@ -237,8 +248,8 @@ curl -s http://localhost:9090/api/v1/targets
 | Symptom | Likely Cause | Resolution |
 |---|---|---|
 | qm containers restart repeatedly | Invalid MQSC or unsupported object attributes | Check container logs and validate mq-monitoring MQSC content, then rebuild with build_mq.sh |
-| Prometheus target shows down or unknown | Missing target port in Prometheus config or exporter not listening | Re-run build_prometheus.sh with -p 9158,9159,9160 and verify exporter logs |
-| 9160 metrics endpoint not reachable | qm3 still initializing or embedded exporter not started | Check qm3 logs, wait for healthy status, then retry curl against localhost:9160/metrics |
+| Prometheus target shows down or unknown | Missing target port in Prometheus config or exporter not listening | Re-run build_prometheus.sh with -p 9157,9158,9159 and verify exporter logs |
+| 9159 metrics endpoint not reachable | qm3 still initializing or embedded exporter not started | Check qm3 logs, wait for healthy status, then retry curl against localhost:9159/metrics |
 | qmgr labels missing in metrics | Exporter unable to connect to MQ target | Validate channel, host, and port mapping for target queue manager |
 | Missing resource metrics (CPU, memory, disk) | Queue manager monitoring classes not enabled | Run ALTER QMGR MONQ(MEDIUM) MONCHL(MEDIUM) and restart queue manager |
 | build_mq.sh prompts repeatedly for sudo | Privileged filesystem operations require authentication | Run sudo -v before invoking build scripts to cache credentials |

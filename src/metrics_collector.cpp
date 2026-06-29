@@ -1,4 +1,5 @@
 #include "ibmmq_exporter/metrics_collector.h"
+#include "ibmmq_exporter/build_version.h"
 
 #include <chrono>
 #include <ctime>
@@ -294,7 +295,7 @@ void MetricsCollector::update_metrics_from_messages(
         {"queue_manager", config_.mq.queue_manager},
         {"channel", config_.mq.channel},
         {"platform", mq_client_->get_platform_string()},
-        {"collector_version", "1.0.0"}})).Set(1);
+        {"collector_version", IBMMQ_EXPORTER_VERSION}})).Set(1);
 }
 
 void MetricsCollector::update_mqi_gauges(const MQIStatistics& mqi, const std::string& qmgr) {
@@ -783,7 +784,7 @@ void MetricsCollector::set_baseline_metrics(int /*stats_count*/, int /*acct_coun
     collection_info_->Add(add_meta_labels({{"queue_manager", config_.mq.queue_manager},
                            {"channel", config_.mq.channel},
                            {"platform", mq_client_->get_platform_string()},
-                           {"collector_version", "1.0.0"}})).Set(1);
+                           {"collector_version", IBMMQ_EXPORTER_VERSION}})).Set(1);
 }
 
 void MetricsCollector::collect_publication_metrics() {

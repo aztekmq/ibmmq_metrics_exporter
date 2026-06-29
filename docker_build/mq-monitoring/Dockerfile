@@ -1,6 +1,10 @@
 # FROM ibmcom/mq:latest
 FROM icr.io/ibm-messaging/mq:latest
 
+ARG IBMMQ_EXPORTER_BASE_VERSION=unknown
+LABEL org.opencontainers.image.version="${IBMMQ_EXPORTER_BASE_VERSION}"
+ENV IBMMQ_EXPORTER_BASE_VERSION="${IBMMQ_EXPORTER_BASE_VERSION}"
+
 USER root
 
 # Ensure principals referenced by MQSC auth records exist.

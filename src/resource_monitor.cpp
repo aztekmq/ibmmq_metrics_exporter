@@ -367,6 +367,11 @@ bool ResourceMonitor::create_subscriptions(const std::vector<std::string>& queue
     // topics prohibit wildcard subscriptions, causing RC=2598).
     int sub_count = 0;
     for (const auto& cls : classes_) {
+        if (cls.class_name == "STATAPP") {
+            spdlog::info("Skipping STATAPP subscriptions; application statistics identifiers are not queue names");
+            continue;
+        }
+
         for (const auto& type : cls.types) {
             if (type.object_topic.empty()) continue;
 

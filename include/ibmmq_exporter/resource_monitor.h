@@ -95,7 +95,7 @@ public:
     bool discover();
 
     // Phase 2: Create subscriptions to exact per-type data topics.
-    // For per-queue classes (STATQ, STATAPP) pass discovered queue names.
+    // For per-queue classes (STATQ) pass discovered queue names.
     bool create_subscriptions(const std::vector<std::string>& queues = {});
 
     // Phase 3: Process pending publication messages (each collection cycle)

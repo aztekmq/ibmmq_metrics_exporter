@@ -1,0 +1,73 @@
+if(NOT DEFINED SOURCE_DIR)
+    message(FATAL_ERROR "SOURCE_DIR is required")
+endif()
+
+if(NOT DEFINED OUTPUT_FILE)
+    message(FATAL_ERROR "OUTPUT_FILE is required")
+endif()
+
+file(STRINGS "${SOURCE_DIR}/VERSION" BASE_VERSION LIMIT_COUNT 1)
+string(STRIP "${BASE_VERSION}" BASE_VERSION)
+
+if(BASE_VERSION STREQUAL "")
+    message(FATAL_ERROR "VERSION file is empty")
+endif()
+
+find_package(Git QUIET)
+
+set(GIT_SHA "unknown")
+set(GIT_DIRTY "false")
+set(HAS_GIT_DIRTY_OVERRIDE "false")
+
+if(DEFINED GIT_SHA_OVERRIDE AND NOT GIT_SHA_OVERRIDE STREQUAL "")
+    set(GIT_SHA "${GIT_SHA_OVERRIDE}")
+endif()
+
+if(DEFINED GIT_DIRTY_OVERRIDE AND NOT GIT_DIRTY_OVERRIDE STREQUAL "")
+    set(GIT_DIRTY "${GIT_DIRTY_OVERRIDE}")
+    set(HAS_GIT_DIRTY_OVERRIDE "true")
+endif()
+
+if(GIT_FOUND AND GIT_SHA STREQUAL "unknown")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+        WORKING_DIRECTORY "${SOURCE_DIR}"
+        OUTPUT_VARIABLE GIT_SHA_OUT
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE GIT_SHA_RESULT
+    )
+    if(GIT_SHA_RESULT EQUAL 0 AND NOT GIT_SHA_OUT STREQUAL "")
+        set(GIT_SHA "${GIT_SHA_OUT}")
+    endif()
+endif()
+
+if(GIT_FOUND AND NOT HAS_GIT_DIRTY_OVERRIDE)
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" diff --quiet
+        WORKING_DIRECTORY "${SOURCE_DIR}"
+        ERROR_QUIET
+        RESULT_VARIABLE GIT_DIRTY_RESULT
+    )
+    if(NOT GIT_DIRTY_RESULT EQUAL 0)
+        set(GIT_DIRTY "true")
+    endif()
+endif()
+
+string(TIMESTAMP BUILD_TIME_UTC "%Y%m%d%H%M%S" UTC)
+set(FULL_VERSION "${BASE_VERSION}+g${GIT_SHA}")
+if(GIT_DIRTY STREQUAL "true")
+    string(APPEND FULL_VERSION ".dirty")
+endif()
+
+get_filename_component(OUTPUT_DIR "${OUTPUT_FILE}" DIRECTORY)
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+
+set(CONTENT "#pragma once\n\n")
+string(APPEND CONTENT "#define IBMMQ_EXPORTER_BASE_VERSION \"${BASE_VERSION}\"\n")
+string(APPEND CONTENT "#define IBMMQ_EXPORTER_VERSION \"${FULL_VERSION}\"\n")
+string(APPEND CONTENT "#define IBMMQ_EXPORTER_GIT_SHA \"${GIT_SHA}\"\n")
+string(APPEND CONTENT "#define IBMMQ_EXPORTER_GIT_DIRTY \"${GIT_DIRTY}\"\n")
+string(APPEND CONTENT "#define IBMMQ_EXPORTER_BUILD_TIME_UTC \"${BUILD_TIME_UTC}\"\n")
+
+file(WRITE "${OUTPUT_FILE}" "${CONTENT}")

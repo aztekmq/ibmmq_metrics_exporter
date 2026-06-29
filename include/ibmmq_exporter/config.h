@@ -95,17 +95,18 @@ struct Config {
 // Platform constants (from MQIA_PLATFORM inquiry)
 namespace platform {
     constexpr int32_t UNKNOWN    = 0;
-    constexpr int32_t OS400     = 3;
-    constexpr int32_t WINDOWS   = 11;
-    constexpr int32_t UNIX      = 13;
-    constexpr int32_t ZOS       = 18;
-    constexpr int32_t NSK       = 27;
+    constexpr int32_t ZOS       = 1;
+    constexpr int32_t UNIX      = 3;
+    constexpr int32_t OS400     = 4;
+    constexpr int32_t WINDOWS   = 5;
+    constexpr int32_t WINDOWS_NT = 11;
+    constexpr int32_t NSK       = 13;
     constexpr int32_t APPLIANCE = 28;
 
     // Compile-time detection of local platform
     constexpr int32_t local_platform() {
 #ifdef _WIN32
-        return WINDOWS;
+        return WINDOWS_NT;
 #elif defined(__MVS__)
         return ZOS;
 #elif defined(__OS400__)

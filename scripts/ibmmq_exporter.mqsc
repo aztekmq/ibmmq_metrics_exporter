@@ -1,7 +1,3 @@
-* Cleanup any existing service
-STOP SERVICE(IBMMQEXPORTER)
-DELETE SERVICE(IBMMQEXPORTER)
-
 * Define the IBM MQ Metrics Exporter service
 DEFINE SERVICE(IBMMQEXPORTER)         +
        CONTROL(QMGR)                +
@@ -12,7 +8,5 @@ DEFINE SERVICE(IBMMQEXPORTER)         +
        STOPARG(+MQ_SERVER_PID+)     +
        STDOUT('/var/mqm/errors/ibmmq_exporter.out')  +
        STDERR('/var/mqm/errors/ibmmq_exporter.out')  +
-       DESCR('IBM MQ metrics exporter for Prometheus')
-
-* Start it manually now; will be automatically started on future qmgr startup
-START SERVICE(IBMMQEXPORTER)
+       DESCR('IBM MQ metrics exporter for Prometheus') +
+       REPLACE

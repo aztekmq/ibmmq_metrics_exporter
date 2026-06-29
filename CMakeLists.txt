@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version for dependencies")
-project(ibmmq_exporter VERSION 1.0.0 LANGUAGES CXX)
+
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" IBMMQ_EXPORTER_BASE_VERSION LIMIT_COUNT 1)
+string(STRIP "${IBMMQ_EXPORTER_BASE_VERSION}" IBMMQ_EXPORTER_BASE_VERSION)
+if(IBMMQ_EXPORTER_BASE_VERSION STREQUAL "")
+    message(FATAL_ERROR "VERSION file is empty")
+endif()
+
+project(ibmmq_exporter VERSION ${IBMMQ_EXPORTER_BASE_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +29,8 @@ endif()
 option(IBMMQ_EXPORTER_USE_STUB_MQ "Build with stub IBM MQ headers (no real MQ dependency)" OFF)
 option(IBMMQ_EXPORTER_ALLOW_STUB_FALLBACK "Allow automatic fallback to stub mode when real MQ is unavailable" OFF)
 option(IBMMQ_EXPORTER_ENABLE_TLS  "Enable TLS/HTTPS support (requires OpenSSL)" OFF)
+set(IBMMQ_EXPORTER_GIT_SHA "" CACHE STRING "Git SHA to embed when .git is not available")
+set(IBMMQ_EXPORTER_GIT_DIRTY "" CACHE STRING "Git dirty flag to embed when .git is not available")
 
 # --- FetchContent for dependencies ---
 include(FetchContent)
@@ -106,10 +115,30 @@ set(SOURCES
     src/http_server.cpp
 )
 
+set(IBMMQ_EXPORTER_BUILD_VERSION_HEADER
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/ibmmq_exporter/build_version.h")
+
+add_custom_target(generate_build_version ALL
+    COMMAND "${CMAKE_COMMAND}"
+        -D "SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+        -D "OUTPUT_FILE=${IBMMQ_EXPORTER_BUILD_VERSION_HEADER}"
+        -D "GIT_SHA_OVERRIDE=${IBMMQ_EXPORTER_GIT_SHA}"
+        -D "GIT_DIRTY_OVERRIDE=${IBMMQ_EXPORTER_GIT_DIRTY}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_build_version.cmake"
+    BYPRODUCTS "${IBMMQ_EXPORTER_BUILD_VERSION_HEADER}"
+    DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/VERSION"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_build_version.cmake"
+    COMMENT "Generating ibmmq-exporter build version"
+    VERBATIM
+)
+
 add_executable(ibmmq-exporter ${SOURCES})
+add_dependencies(ibmmq-exporter generate_build_version)
 
 target_include_directories(ibmmq-exporter PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
     ${IBMMQ_INCLUDE_DIR}
 )
 
@@ -139,11 +168,6 @@ if(WIN32)
 elseif(UNIX)
     target_link_libraries(ibmmq-exporter PRIVATE pthread dl)
 endif()
-
-# Version info
-target_compile_definitions(ibmmq-exporter PRIVATE
-    PROJECT_VERSION="${PROJECT_VERSION}"
-)
 
 # Install
 install(TARGETS ibmmq-exporter RUNTIME DESTINATION bin)

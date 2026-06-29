@@ -29,6 +29,7 @@ bool MQConfig::is_client_mode() const {
 const char* platform::platform_name(int32_t id) {
     switch (id) {
     case WINDOWS:   return "windows";
+    case WINDOWS_NT: return "windows";
     case UNIX:      return "unix";
     case ZOS:       return "zos";
     case OS400:     return "os400";

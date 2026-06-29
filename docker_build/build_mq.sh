@@ -62,6 +62,15 @@ DATA_DIR="./data"
 # Container image name and tag. Ensure the image is available locally/remotely.
 IMAGE_NAME="mq-local-monitoring"
 EMBEDDED_EXPORTER_IMAGE_NAME="mq-local-embedded-exporter"
+VERSION_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/VERSION"
+REPO_ROOT="$(dirname "$VERSION_FILE")"
+EXPORTER_BASE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+EXPORTER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null || true)" ]]; then
+  EXPORTER_GIT_DIRTY="true"
+else
+  EXPORTER_GIT_DIRTY="false"
+fi
 # Docker build context for the custom image layer that provisions the
 # monitoring/app OS identities and ships the replay-safe MQSC auth config.
 DOCKERFILE_DIR="./mq-monitoring"
@@ -114,20 +123,28 @@ for ((i=1; i<=NUM_QMGRS; i++)); do
     fi
   done
 
-  # qm3 embeds exporter and exposes metrics on host port 9160.
+  # qm3 embeds exporter and exposes metrics on host port 9159.
   if [[ "$i" -eq 3 ]]; then
-    if ss -ltn | grep -q ":9160 "; then
-      echo -e "${RED}❌ Port 9160 already in use. Cannot continue.${NC}"
+    if ss -ltn | grep -q ":9159 "; then
+      echo -e "${RED}❌ Port 9159 already in use. Cannot continue.${NC}"
       exit 1
     fi
   fi
 done
  
 echo -e "${GREEN}✅ No port conflicts detected.${NC}"
+echo -e "${CYAN}Exporter base version: ${EXPORTER_BASE_VERSION}${NC}"
+echo -e "${CYAN}Exporter git revision: ${EXPORTER_GIT_SHA} dirty=${EXPORTER_GIT_DIRTY}${NC}"
  
 # --------- Custom Image Build ---------
 echo -e "${CYAN}ðŸ§± Building custom MQ image...${NC}"
-docker build -t "$IMAGE_NAME" "$DOCKERFILE_DIR"
+docker build \
+  --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
+  --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
+  --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  -t "$IMAGE_NAME:latest" \
+  -t "$IMAGE_NAME:$EXPORTER_BASE_VERSION" \
+  "$DOCKERFILE_DIR"
 if [[ $? -ne 0 ]]; then
   echo -e "${RED}❌ Failed to build image '$IMAGE_NAME' from '$DOCKERFILE_DIR'.${NC}"
   exit 1
@@ -135,7 +152,14 @@ fi
 
 # Build specialized image where ibmmq-exporter runs inside qm3.
 echo -e "${CYAN}ðŸ§± Building embedded-exporter MQ image...${NC}"
-docker build -t "$EMBEDDED_EXPORTER_IMAGE_NAME" -f "$EMBEDDED_EXPORTER_DOCKERFILE" "$EMBEDDED_EXPORTER_CONTEXT"
+docker build \
+  --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
+  --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
+  --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  -t "$EMBEDDED_EXPORTER_IMAGE_NAME:latest" \
+  -t "$EMBEDDED_EXPORTER_IMAGE_NAME:$EXPORTER_BASE_VERSION" \
+  -f "$EMBEDDED_EXPORTER_DOCKERFILE" \
+  "$EMBEDDED_EXPORTER_CONTEXT"
 if [[ $? -ne 0 ]]; then
   echo -e "${RED}❌ Failed to build image '$EMBEDDED_EXPORTER_IMAGE_NAME'.${NC}"
   exit 1
@@ -197,7 +221,7 @@ EOF
 
   if [[ "$i" -eq 3 ]]; then
     cat <<EOF >> "$COMPOSE_FILE"
-      - "9160:9159"
+      - "9159:9159"
 EOF
   fi
 
@@ -260,7 +284,7 @@ done
 
 if [[ "$NUM_QMGRS" -ge 3 ]]; then
   echo ""
-  echo -e "${YELLOW}Embedded exporter:${NC} qm3 runs exporter on container port 9159 and exposes http://localhost:9160/metrics"
+  echo -e "${YELLOW}Embedded exporter:${NC} qm3 runs exporter on container port 9159 and exposes http://localhost:9159/metrics"
 fi
  
 echo ""

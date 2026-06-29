@@ -23,6 +23,14 @@ NETWORK_NAME="ibmmq_monitoring"
 BASE_METRICS_PORT=9157
 BASE_LISTENER_PORT=1414
 TARGET_COUNT=2
+VERSION_FILE="$REPO_ROOT/VERSION"
+EXPORTER_BASE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+EXPORTER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null || true)" ]]; then
+  EXPORTER_GIT_DIRTY="true"
+else
+  EXPORTER_GIT_DIRTY="false"
+fi
 
 check_command() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -45,11 +53,22 @@ if [[ "$#" -eq 1 ]] && [[ "$1" != "2" ]]; then
 fi
 
 ensure_base_image() {
-  if ! docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
-    echo "Base image '$BASE_IMAGE' not found. Building it now..."
-    docker build -t "$BASE_IMAGE" "$BASE_IMAGE_CONTEXT"
+  current_base_version=""
+  if docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
+    current_base_version="$(docker image inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$BASE_IMAGE" 2>/dev/null || true)"
+  fi
+
+  if [[ "$current_base_version" != "$EXPORTER_BASE_VERSION" ]]; then
+    echo "Building base image '$BASE_IMAGE' for version $EXPORTER_BASE_VERSION..."
+    docker build \
+      --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
+      --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
+      --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+      -t "$BASE_IMAGE:latest" \
+      -t "$BASE_IMAGE:$EXPORTER_BASE_VERSION" \
+      "$BASE_IMAGE_CONTEXT"
   else
-    echo "Base image '$BASE_IMAGE' already exists."
+    echo "Base image '$BASE_IMAGE' already matches version $EXPORTER_BASE_VERSION."
   fi
   if ! docker image inspect "$REMOTE_IMAGE" >/dev/null 2>&1; then
     echo "ERROR: Bootstrap image '$REMOTE_IMAGE' is required but not found." >&2
@@ -64,8 +83,15 @@ build_exporter_binary() {
 }
 
 build_image() {
-  echo "Building remote exporter Docker image '$REMOTE_IMAGE'..."
-  docker build -t "$REMOTE_IMAGE" -f "$DOCKERFILE" "$REPO_ROOT"
+  echo "Building remote exporter Docker image '$REMOTE_IMAGE' for base version $EXPORTER_BASE_VERSION..."
+  docker build \
+    --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
+    --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
+    --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+    -t "$REMOTE_IMAGE:latest" \
+    -t "$REMOTE_IMAGE:$EXPORTER_BASE_VERSION" \
+    -f "$DOCKERFILE" \
+    "$REPO_ROOT"
 }
 
 ensure_network() {
@@ -143,7 +169,7 @@ main() {
   generate_compose_file
   start_exporters
   echo ""
-  echo "Built image: $REMOTE_IMAGE"
+  echo "Built image: $REMOTE_IMAGE:latest and $REMOTE_IMAGE:$EXPORTER_BASE_VERSION"
   echo "Compose file: $COMPOSE_FILE"
   echo "Metrics endpoints: 9157 and 9158 (one exporter per target)"
 }

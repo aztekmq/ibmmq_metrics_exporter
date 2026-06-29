@@ -15,11 +15,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # If not available, the build uses stub headers automatically.
 ARG USE_STUB_MQ=ON
 ARG MQ_HOME=/opt/mqm
+ARG IBMMQ_EXPORTER_GIT_SHA=unknown
+ARG IBMMQ_EXPORTER_GIT_DIRTY=false
 
 WORKDIR /src
 
 # Copy source
 COPY CMakeLists.txt ./
+COPY VERSION ./
 COPY cmake/ cmake/
 COPY include/ include/
 COPY src/ src/
@@ -31,6 +34,8 @@ RUN cmake -S . -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_COMPILER=g++ \
     -DIBMMQ_EXPORTER_USE_STUB_MQ=${USE_STUB_MQ} \
+    -DIBMMQ_EXPORTER_GIT_SHA=${IBMMQ_EXPORTER_GIT_SHA} \
+    -DIBMMQ_EXPORTER_GIT_DIRTY=${IBMMQ_EXPORTER_GIT_DIRTY} \
     ${MQ_HOME:+-DMQ_HOME=${MQ_HOME}}
 
 # Build

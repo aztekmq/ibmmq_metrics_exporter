@@ -111,6 +111,8 @@ if [[ -f "$BINARY" ]]; then
     echo "Build successful!"
     echo "Binary: ${BINARY}"
     ls -lh "$BINARY"
+    echo ""
+    "$BINARY" version
 else
     echo ""
     echo "Build completed. Check ${BUILD_DIR} for output."

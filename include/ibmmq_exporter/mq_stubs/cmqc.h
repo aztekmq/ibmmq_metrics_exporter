@@ -42,12 +42,12 @@ typedef MQCHAR*  PMQCHAR;
 #define MQRC_Q_MGR_QUIESCING   2161
 #define MQRC_CONNECTION_BROKEN 2009
 #define MQRC_SUB_ALREADY_EXISTS 2432
-#define MQRC_UNKNOWN_OBJECT_NAME 2067
+#define MQRC_UNKNOWN_OBJECT_NAME 2085
 
 /* Object types */
 #define MQOT_Q        1
 #define MQOT_Q_MGR    5
-#define MQOT_TOPIC    19
+#define MQOT_TOPIC    8
 
 /* Open options */
 #define MQOO_INPUT_AS_Q_DEF    0x00000001
@@ -84,8 +84,8 @@ typedef MQCHAR*  PMQCHAR;
 #define MQCNO_VERSION_1        1
 #define MQCNO_VERSION_2        2
 #define MQCNO_VERSION_5        5
-#define MQCNO_CLIENT_BINDING   0x00000002
-#define MQCNO_LOCAL_BINDING    0x00000004
+#define MQCNO_CLIENT_BINDING   0x00000800
+#define MQCNO_LOCAL_BINDING    0x00000400
 #define MQCNO_STANDARD_BINDING 0x00000000
 
 /* CSP auth types */
@@ -103,12 +103,24 @@ typedef MQCHAR*  PMQCHAR;
 #define MQIA_MSG_DEQ_COUNT     38
 
 /* Platform values */
-#define MQPL_OS400       3
+#define MQPL_MVS         1
+#define MQPL_OS390       1
+#define MQPL_ZOS         1
+#define MQPL_OS2         2
+#define MQPL_AIX         3
+#define MQPL_UNIX        3
+#define MQPL_OS400       4
+#define MQPL_WINDOWS     5
 #define MQPL_WINDOWS_NT  11
-#define MQPL_UNIX        13
-#define MQPL_ZOS         18
-#define MQPL_NSK         27
+#define MQPL_VMS         12
+#define MQPL_NSK         13
+#define MQPL_NSS         13
+#define MQPL_OPEN_TP1    15
+#define MQPL_VM          18
+#define MQPL_TPF         23
+#define MQPL_VSE         27
 #define MQPL_APPLIANCE   28
+#define MQPL_NATIVE      3
 
 /* Close options */
 #define MQCO_IMMEDIATE     0x00000000

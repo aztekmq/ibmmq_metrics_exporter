@@ -10,6 +10,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "ibmmq_exporter/collector.h"
+#include "ibmmq_exporter/build_version.h"
 #include "ibmmq_exporter/config.h"
 
 static std::atomic<bool> g_shutdown_requested{false};
@@ -53,7 +54,7 @@ static int run_collector(const std::string& config_file, bool continuous,
                           const std::string& log_format, bool verbose) {
     setup_logger(log_level, log_format, verbose, "");
 
-    spdlog::info("IBM MQ Statistics Collector v{}", PROJECT_VERSION);
+    spdlog::info("IBM MQ Statistics Collector v{}", IBMMQ_EXPORTER_VERSION);
 
     // Load configuration
     ibmmq_exporter::Config cfg;
@@ -114,7 +115,11 @@ static int run_collector(const std::string& config_file, bool continuous,
 
 static void print_version() {
     std::cout << "IBM MQ Statistics Collector\n"
-              << "Version: " << PROJECT_VERSION << "\n"
+              << "Version: " << IBMMQ_EXPORTER_VERSION << "\n"
+              << "Base Version: " << IBMMQ_EXPORTER_BASE_VERSION << "\n"
+              << "Git SHA: " << IBMMQ_EXPORTER_GIT_SHA << "\n"
+              << "Git Dirty: " << IBMMQ_EXPORTER_GIT_DIRTY << "\n"
+              << "Build Time UTC: " << IBMMQ_EXPORTER_BUILD_TIME_UTC << "\n"
               << "Language: C++20\n";
 }
 
@@ -232,7 +237,7 @@ static int validate_config(const std::string& config_file) {
 
 int main(int argc, char** argv) {
     CLI::App app{"IBM MQ Statistics and Accounting Collector for Prometheus"};
-    app.set_version_flag("--version", std::string(PROJECT_VERSION));
+    app.set_version_flag("--version", std::string(IBMMQ_EXPORTER_VERSION));
 
     // Global flags
     std::string config_file;

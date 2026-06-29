@@ -60,10 +60,10 @@
 #define MQCHT_REQUESTER  4
 #define MQCHT_SVRCONN    7
 #define MQCHT_CLNTCONN   6
-#define MQCHT_CLUSSDR    8
-#define MQCHT_CLUSRCVR   9
-#define MQCHT_AMQP       14
-#define MQCHT_MQTT       15
+#define MQCHT_CLUSSDR    9
+#define MQCHT_CLUSRCVR   8
+#define MQCHT_AMQP       11
+#define MQCHT_MQTT       10
 
 /* Channel status values */
 #define MQCHS_INACTIVE   0
@@ -77,7 +77,7 @@
 #define MQCHS_PAUSED     8
 #define MQCHS_DISCONNECTED 9
 #define MQCHS_INITIALIZING 13
-#define MQCHS_SWITCHING  26
+#define MQCHS_SWITCHING  14
 
 /* Topic status parameter IDs */
 #define MQCA_TOPIC_STRING       2094
@@ -85,19 +85,18 @@
 #define MQIA_TOPIC_TYPE         208
 #define MQIA_PUB_COUNT          215
 #define MQIA_SUB_COUNT          204
-#define MQIACF_TOPIC_STATUS_TYPE 1185
+#define MQIACF_TOPIC_STATUS_TYPE 1302
 
 /* Topic status type values */
-#define MQIACF_TOPIC_SUB        1
-#define MQIACF_TOPIC_PUB        2
-#define MQIACF_TOPIC_STATUS     0
+#define MQIACF_TOPIC_SUB        1296
+#define MQIACF_TOPIC_PUB        1297
+#define MQIACF_TOPIC_STATUS     1295
 
 /* Subscription status parameter IDs */
 #define MQCACF_SUB_NAME         3152
 #define MQBACF_SUB_ID           7016
 #define MQIACF_SUB_TYPE         1289
 #define MQIA_DURABLE_SUB        175
-#define MQIACF_SUB_STATUS_TYPE  1186
 #define MQCACF_DESTINATION      3154
 
 /* QM status parameter IDs */
@@ -105,20 +104,16 @@
 #define MQCA_Q_MGR_DESC         2014
 #define MQIACF_Q_MGR_STATUS     1149
 #define MQIACF_CHINIT_STATUS    1232
-#define MQIACF_CONNECTION_COUNT 1229
+#define MQIACF_CONNECTION_COUNT 1230
 #define MQIACF_CMD_SERVER_STATUS 1233
 #define MQCACF_Q_MGR_START_DATE 3175
 #define MQCACF_Q_MGR_START_TIME 3176
 
 /* Cluster QM parameter IDs */
 #define MQCA_CLUSTER_NAME       2029
-#define MQIA_QM_TYPE            125
-#define MQIACF_CLUSTER_Q_MGR_STATUS 1127
 
 /* z/OS usage parameter IDs */
 #define MQIACF_USAGE_TYPE            1157
-#define MQIACF_USAGE_BP              1
-#define MQIACF_USAGE_PS              2
 #define MQIACF_BUFFER_POOL_ID        1158
 #define MQIA_PAGESET_ID              62
 #define MQIACF_USAGE_TOTAL_PAGES     1159
@@ -133,7 +128,7 @@
 
 /* Queue attributes for INQUIRE_Q */
 #define MQCA_Q_NAME             2016
-#define MQCA_Q_DESC             2017
+#define MQCA_Q_DESC             2013
 #define MQIA_Q_TYPE             20
 #define MQIA_CURRENT_Q_DEPTH    3
 #define MQIA_MAX_Q_DEPTH        15
