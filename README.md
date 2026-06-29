@@ -42,16 +42,16 @@ flowchart LR
     E["Remote Exporter Container"]
     Q1["QM1 Container"]
     Q2["QM2 Container"]
-    Q3["QM3 Container<br/>Embedded Exporter"]
+    Q3["QM3 Container - Embedded Exporter"]
 
-    G -->|"Query"| P
+    G -->|Query| P
 
-    P -->|"Scrape QM1 metrics :9157"| E
-    P -->|"Scrape QM2 metrics :9158"| E
-    P -->|"Scrape QM3 metrics :9159"| Q3
+    P -->|Scrape QM1 metrics :9157| E
+    P -->|Scrape QM2 metrics :9158| E
+    P -->|Scrape QM3 metrics :9159| Q3
 
-    E -->|"MQ client :1414"| Q1
-    E -->|"MQ client :1414"| Q2
+    E -->|MQ client :1414| Q1
+    E -->|MQ client :1414| Q2
 ```
 
 ## Deployment model
