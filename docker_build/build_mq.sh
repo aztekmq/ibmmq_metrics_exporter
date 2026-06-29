@@ -114,10 +114,10 @@ for ((i=1; i<=NUM_QMGRS; i++)); do
     fi
   done
 
-  # qm3 embeds exporter and exposes metrics on host port 9159.
+  # qm3 embeds exporter and exposes metrics on host port 9160.
   if [[ "$i" -eq 3 ]]; then
-    if ss -ltn | grep -q ":9159 "; then
-      echo -e "${RED}❌ Port 9159 already in use. Cannot continue.${NC}"
+    if ss -ltn | grep -q ":9160 "; then
+      echo -e "${RED}❌ Port 9160 already in use. Cannot continue.${NC}"
       exit 1
     fi
   fi
@@ -197,7 +197,7 @@ EOF
 
   if [[ "$i" -eq 3 ]]; then
     cat <<EOF >> "$COMPOSE_FILE"
-      - "9159:9159"
+      - "9160:9159"
 EOF
   fi
 
@@ -260,7 +260,7 @@ done
 
 if [[ "$NUM_QMGRS" -ge 3 ]]; then
   echo ""
-  echo -e "${YELLOW}Embedded exporter:${NC} qm3 runs exporter on container port 9159 and exposes http://localhost:9159/metrics"
+  echo -e "${YELLOW}Embedded exporter:${NC} qm3 runs exporter on container port 9159 and exposes http://localhost:9160/metrics"
 fi
  
 echo ""

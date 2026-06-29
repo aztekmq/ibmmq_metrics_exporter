@@ -21,7 +21,6 @@ DOCKERFILE="$SCRIPT_DIR/remote-exporter/Dockerfile"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.remote-exporter.yml"
 NETWORK_NAME="ibmmq_monitoring"
 BASE_METRICS_PORT=9157
-INTERNAL_METRICS_BASE_PORT=19157
 BASE_LISTENER_PORT=1414
 TARGET_COUNT=2
 
@@ -114,12 +113,12 @@ services:
     environment:
       - IBMMQ_TARGETS=${targets}
       - IBMMQ_CHANNEL=EXPORTER.SVRCONN
-      - IBMMQ_EXPORTER_BASE_PORT=${INTERNAL_METRICS_BASE_PORT}
-      - IBMMQ_EXPORTER_PUBLIC_PORT=${BASE_METRICS_PORT}
+      - IBMMQ_EXPORTER_BASE_PORT=${BASE_METRICS_PORT}
       - IBMMQ_USER=${exporter_user}
       - IBMMQ_PASSWORD=${exporter_password}
     ports:
-      - "${BASE_METRICS_PORT}:${BASE_METRICS_PORT}"
+      - "9157:9157"
+      - "9158:9158"
     networks:
       - monitoring
     restart: unless-stopped
@@ -146,7 +145,7 @@ main() {
   echo ""
   echo "Built image: $REMOTE_IMAGE"
   echo "Compose file: $COMPOSE_FILE"
-  echo "Metrics endpoint: ${BASE_METRICS_PORT} (merged across ${TARGET_COUNT} target(s))"
+  echo "Metrics endpoints: 9157 and 9158 (one exporter per target)"
 }
 
 main "$@"
