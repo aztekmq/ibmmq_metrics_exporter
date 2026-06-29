@@ -2,22 +2,19 @@
 # =============================================================================
 # Script Name : build_remote_exporter.sh
 # Description : Build a Docker image for a remote MQ exporter container.
-#               Uses the same base image as build_mq.sh, but does not create
-#               any queue manager.
+#               Builds the exporter from the current workspace and runs it
+#               outside the queue manager containers.
 #
-# The image produced is intended to host ibmmq-exporter as a service. The
-# runtime reuses an existing local C++ exporter image as a bootstrap layer,
-# then refreshes scripts/config from the current workspace.
+# The image produced is intended to host one remote ibmmq-exporter process per
+# target queue manager. It does not depend on a previously built
+# mq-remote-exporter image.
 # =============================================================================
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BASE_IMAGE="mq-local-monitoring"
 REMOTE_IMAGE="mq-remote-exporter"
-BASE_IMAGE_CONTEXT="$SCRIPT_DIR/mq-monitoring"
-BASE_IMAGE_DOCKERFILE="$BASE_IMAGE_CONTEXT/Dockerfile"
 DOCKERFILE="$SCRIPT_DIR/remote-exporter/Dockerfile"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.remote-exporter.yml"
 NETWORK_NAME="ibmmq_monitoring"
@@ -54,36 +51,8 @@ if [[ "$#" -eq 1 ]] && [[ "$1" != "2" ]]; then
   exit 1
 fi
 
-ensure_base_image() {
-  current_base_version=""
-  if docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
-    current_base_version="$(docker image inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$BASE_IMAGE" 2>/dev/null || true)"
-  fi
-
-  if [[ "$current_base_version" != "$EXPORTER_BASE_VERSION" ]]; then
-    echo "Building base image '$BASE_IMAGE' for version $EXPORTER_BASE_VERSION..."
-    docker build \
-      --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
-      --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
-      --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
-      --build-arg "IBMMQ_EXPORTER_BUILD_ID=$EXPORTER_BUILD_ID" \
-      -t "$BASE_IMAGE:latest" \
-      -t "$BASE_IMAGE:$EXPORTER_BASE_VERSION" \
-      -f "$BASE_IMAGE_DOCKERFILE" \
-      "$REPO_ROOT"
-  else
-    echo "Base image '$BASE_IMAGE' already matches version $EXPORTER_BASE_VERSION."
-  fi
-  if ! docker image inspect "$REMOTE_IMAGE" >/dev/null 2>&1; then
-    echo "ERROR: Bootstrap image '$REMOTE_IMAGE' is required but not found." >&2
-    echo "Run './build_remote_exporter.sh' at least once on a host where the image already exists," >&2
-    echo "or restore it from a local cache/registry backup before rebuilding on this host." >&2
-    return 1
-  fi
-}
-
 build_exporter_binary() {
-  echo "Reusing previously built local C++ exporter runtime from image: $REMOTE_IMAGE"
+  echo "Building ibmmq-exporter from the current workspace."
 }
 
 build_image() {
@@ -166,7 +135,6 @@ start_exporters() {
 }
 
 main() {
-  ensure_base_image
   build_exporter_binary
   build_image
   ensure_network
