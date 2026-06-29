@@ -36,44 +36,41 @@ This document also defines the supported container topology for the lab environm
 The Docker lab is a fixed deployment with three queue managers and mixed exporter models.
 
 ```mermaid
-flowchart LR
-    User["Operator"]
+graph LR
+    User[Operator]
 
-    subgraph Observe["Observability"]
-        G["Grafana :3000"]
-        P["Prometheus :9090"]
+    subgraph Observe[Observability]
+        G[Grafana 3000]
+        P[Prometheus 9090]
     end
 
-    subgraph Exporters["Exporter Tier"]
-        E["Remote Exporter"]
+    subgraph Exporters[Exporter Tier]
+        E[Remote Exporter]
     end
 
-    subgraph MQ["IBM MQ Lab"]
-        Q1["QM1 :1415"]
-        Q2["QM2 :1416"]
-        Q3["QM3 :1417 + exporter :9159"]
+    subgraph MQ[IBM MQ Lab]
+        Q1[QM1 1415]
+        Q2[QM2 1416]
+        Q3[QM3 1417 and exporter 9159]
     end
 
     User -->|View dashboards| G
     G -->|PromQL| P
 
-    P -->|Scrape :9157| E
-    P -->|Scrape :9158| E
-    P -->|Scrape :9159| Q3
+    P -->|Scrape 9157| E
+    P -->|Scrape 9158| E
+    P -->|Scrape 9159| Q3
 
-    E -->|MQ client :1414| Q1
-    E -->|MQ client :1414| Q2
+    E -->|MQ client 1414| Q1
+    E -->|MQ client 1414| Q2
 
-    classDef user fill:#111827,stroke:#111827,color:#ffffff
-    classDef observe fill:#e0f2fe,stroke:#0284c7,color:#0f172a
-    classDef exporter fill:#ecfdf5,stroke:#059669,color:#064e3b
-    classDef mq fill:#fff7ed,stroke:#ea580c,color:#431407
-    classDef qmgr fill:#ffedd5,stroke:#f97316,color:#431407
-
-    class User user
-    class G,P observe
-    class E exporter
-    class Q1,Q2,Q3 qmgr
+    style User fill:#111827,stroke:#111827,color:#ffffff
+    style G fill:#e0f2fe,stroke:#0284c7,color:#0f172a
+    style P fill:#e0f2fe,stroke:#0284c7,color:#0f172a
+    style E fill:#ecfdf5,stroke:#059669,color:#064e3b
+    style Q1 fill:#ffedd5,stroke:#f97316,color:#431407
+    style Q2 fill:#ffedd5,stroke:#f97316,color:#431407
+    style Q3 fill:#ffedd5,stroke:#f97316,color:#431407
 ```
 
 ## Deployment model
