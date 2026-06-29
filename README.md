@@ -37,20 +37,21 @@ The Docker lab is a fixed deployment with three queue managers and mixed exporte
 
 ```mermaid
 flowchart LR
-  G[Grafana 3000]
-    P[Prometheus 9090]
-    E[Remote Exporter container]
-    Q1[QM1 container]
-    Q2[QM2 container]
-    Q3[QM3 container with embedded exporter]
+    G["Grafana :3000"]
+    P["Prometheus :9090"]
+    E["Remote Exporter Container"]
+    Q1["QM1 Container"]
+    Q2["QM2 Container"]
+    Q3["QM3 Container<br/>Embedded Exporter"]
 
-  G -->|query| P
-    P -->|scrape 9158| E
-    P -->|scrape 9159| E
-    P -->|scrape 9160| Q3
+    G -->|"Query"| P
 
-    E -->|MQ client 1414| Q1
-    E -->|MQ client 1414| Q2
+    P -->|"Scrape QM1 metrics :9157"| E
+    P -->|"Scrape QM2 metrics :9158"| E
+    P -->|"Scrape QM3 metrics :9160"| Q3
+
+    E -->|"MQ client :1414"| Q1
+    E -->|"MQ client :1414"| Q2
 ```
 
 ## Deployment model
