@@ -29,7 +29,7 @@ done
 echo ""
 
 echo "Docker image exporter binaries:"
-for image in mq-remote-exporter mq-local-embedded-exporter; do
+for image in mq-local-monitoring mq-remote-exporter mq-local-embedded-exporter; do
   if docker image inspect "$image" >/dev/null 2>&1; then
     echo "  $image:"
     docker run --rm --entrypoint /usr/local/bin/ibmmq-exporter/ibmmq-exporter "$image" version || true
@@ -40,7 +40,7 @@ done
 echo ""
 
 echo "Running exporter binaries:"
-for container in exporter qm3; do
+for container in exporter qm1 qm2 qm3; do
   if docker ps --format '{{.Names}}' | grep -qx "$container"; then
     if docker exec "$container" test -x /usr/local/bin/ibmmq-exporter/ibmmq-exporter >/dev/null 2>&1; then
       echo "  $container:"

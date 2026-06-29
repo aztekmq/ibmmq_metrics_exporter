@@ -17,6 +17,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BASE_IMAGE="mq-local-monitoring"
 REMOTE_IMAGE="mq-remote-exporter"
 BASE_IMAGE_CONTEXT="$SCRIPT_DIR/mq-monitoring"
+BASE_IMAGE_DOCKERFILE="$BASE_IMAGE_CONTEXT/Dockerfile"
 DOCKERFILE="$SCRIPT_DIR/remote-exporter/Dockerfile"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.remote-exporter.yml"
 NETWORK_NAME="ibmmq_monitoring"
@@ -66,7 +67,8 @@ ensure_base_image() {
       --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
       -t "$BASE_IMAGE:latest" \
       -t "$BASE_IMAGE:$EXPORTER_BASE_VERSION" \
-      "$BASE_IMAGE_CONTEXT"
+      -f "$BASE_IMAGE_DOCKERFILE" \
+      "$REPO_ROOT"
   else
     echo "Base image '$BASE_IMAGE' already matches version $EXPORTER_BASE_VERSION."
   fi

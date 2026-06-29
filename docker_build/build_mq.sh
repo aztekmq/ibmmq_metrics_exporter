@@ -50,6 +50,10 @@
 #   - Recommended linting with ShellCheck: https://www.shellcheck.net/
 # =============================================================================
  
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$SCRIPT_DIR"
+
 # --------- CONFIG ---------
 # Fixed lab size: qm1, qm2, qm3.
 NUM_QMGRS=3
@@ -61,9 +65,9 @@ BASE_REST_PORT=9449       # Maps to container port 9449 (Admin REST)
 DATA_DIR="./data"
 # Container image name and tag. Ensure the image is available locally/remotely.
 IMAGE_NAME="mq-local-monitoring"
+REMOTE_EXPORTER_IMAGE_NAME="mq-remote-exporter"
 EMBEDDED_EXPORTER_IMAGE_NAME="mq-local-embedded-exporter"
-VERSION_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/VERSION"
-REPO_ROOT="$(dirname "$VERSION_FILE")"
+VERSION_FILE="$REPO_ROOT/VERSION"
 EXPORTER_BASE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
 EXPORTER_GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
 if [[ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null || true)" ]]; then
@@ -73,9 +77,11 @@ else
 fi
 # Docker build context for the custom image layer that provisions the
 # monitoring/app OS identities and ships the replay-safe MQSC auth config.
-DOCKERFILE_DIR="./mq-monitoring"
-EMBEDDED_EXPORTER_DOCKERFILE="./mq-embedded-exporter/Dockerfile"
-EMBEDDED_EXPORTER_CONTEXT="../"
+DOCKERFILE_DIR="$REPO_ROOT"
+MQ_MONITORING_DOCKERFILE="$REPO_ROOT/docker_build/mq-monitoring/Dockerfile"
+REMOTE_EXPORTER_DOCKERFILE="$REPO_ROOT/docker_build/remote-exporter/Dockerfile"
+EMBEDDED_EXPORTER_DOCKERFILE="$REPO_ROOT/docker_build/mq-embedded-exporter/Dockerfile"
+EMBEDDED_EXPORTER_CONTEXT="$REPO_ROOT"
 # Output path for the generated Docker Compose definition.
 COMPOSE_FILE="docker-compose.yml"
 COMPOSE_PROJECT_NAME="mq_local_monitoring"
@@ -137,6 +143,20 @@ echo -e "${CYAN}Exporter base version: ${EXPORTER_BASE_VERSION}${NC}"
 echo -e "${CYAN}Exporter git revision: ${EXPORTER_GIT_SHA} dirty=${EXPORTER_GIT_DIRTY}${NC}"
  
 # --------- Custom Image Build ---------
+echo -e "${CYAN}ðŸ§± Building remote exporter image...${NC}"
+docker build \
+  --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
+  --build-arg "IBMMQ_EXPORTER_GIT_SHA=$EXPORTER_GIT_SHA" \
+  --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
+  -t "$REMOTE_EXPORTER_IMAGE_NAME:latest" \
+  -t "$REMOTE_EXPORTER_IMAGE_NAME:$EXPORTER_BASE_VERSION" \
+  -f "$REMOTE_EXPORTER_DOCKERFILE" \
+  "$DOCKERFILE_DIR"
+if [[ $? -ne 0 ]]; then
+  echo -e "${RED}❌ Failed to build image '$REMOTE_EXPORTER_IMAGE_NAME'.${NC}"
+  exit 1
+fi
+
 echo -e "${CYAN}ðŸ§± Building custom MQ image...${NC}"
 docker build \
   --build-arg "IBMMQ_EXPORTER_BASE_VERSION=$EXPORTER_BASE_VERSION" \
@@ -144,6 +164,7 @@ docker build \
   --build-arg "IBMMQ_EXPORTER_GIT_DIRTY=$EXPORTER_GIT_DIRTY" \
   -t "$IMAGE_NAME:latest" \
   -t "$IMAGE_NAME:$EXPORTER_BASE_VERSION" \
+  -f "$MQ_MONITORING_DOCKERFILE" \
   "$DOCKERFILE_DIR"
 if [[ $? -ne 0 ]]; then
   echo -e "${RED}❌ Failed to build image '$IMAGE_NAME' from '$DOCKERFILE_DIR'.${NC}"
