@@ -11,7 +11,7 @@
 #
 # Defaults:
 #   host               host.docker.internal
-#   scrape_ports       9157
+#   scrape_ports       9157,9159
 #   scrape_path        /metrics
 #   prometheus_port    9090
 #   scrape_interval    15s
@@ -32,7 +32,7 @@ DOCKERFILE="$PROMETHEUS_DIR/Dockerfile"
 COMPOSE_FILE="docker-compose.prometheus.yml"
 
 SCRAPE_HOST="host.docker.internal"
-SCRAPE_PORTS="9157"
+SCRAPE_PORTS="9157,9159"
 SCRAPE_PATH="/metrics"
 PROMETHEUS_PORT=9090
 SCRAPE_INTERVAL="15s"

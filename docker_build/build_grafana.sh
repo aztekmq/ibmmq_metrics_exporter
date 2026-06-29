@@ -134,6 +134,7 @@ providers:
     orgId: 1
     folder: IBM MQ
     type: file
+    allowUiUpdates: true
     disableDeletion: false
     editable: true
     options:
